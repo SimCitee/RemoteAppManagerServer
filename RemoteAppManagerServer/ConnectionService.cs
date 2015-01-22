@@ -48,6 +48,7 @@ namespace RemoteAppManagerServer
         public const String RESPONSE_END_DELIMITER = "</RESPONSE>";
         public const String MESSAGETYPE_START_DELIMITER = "<MSGTYPE>";
         public const String MESSAGETYPE_END_DELIMITER = "</MSGTYPE>";
+
         public enum ConnectionStates
         {
             CONNECTING = 1,
@@ -121,7 +122,6 @@ namespace RemoteAppManagerServer
         public void Send(Socket handler, Message msg)
         {
             byte[] byteData = BuildData(msg);
-
             handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
         }
 
@@ -129,7 +129,7 @@ namespace RemoteAppManagerServer
         {
         }
 
-        public byte[] BuildData(Message msg)
+        private byte[] BuildData(Message msg)
         {
             String dataText = RESPONSE_START_DELIMITER;
 
