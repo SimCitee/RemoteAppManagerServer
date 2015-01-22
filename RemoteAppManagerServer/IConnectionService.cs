@@ -14,6 +14,5 @@ namespace RemoteAppManagerServer
         void Send(Socket handler, Message msg);
         void SendCallback(IAsyncResult ar);
         #endregion
-
     }
 }
