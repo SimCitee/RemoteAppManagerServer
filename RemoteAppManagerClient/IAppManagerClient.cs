@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RemoteAppManagerServer
+namespace RemoteAppManagerClient
 {
-    interface IAppManagerServer
+    interface IAppManagerClient
     {
-        void Listen();
-        void AcceptCallback(IAsyncResult ar);
+        void Start();
+        void ConnectCallback(IAsyncResult ar);
         void RequestProcesses();
         void RequestKillProcess(int processID);
-        void RequestStartProcess(String process);
+        void RequestStartProcess(String processName);
     }
 }

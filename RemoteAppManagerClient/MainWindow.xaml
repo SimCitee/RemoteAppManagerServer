@@ -1,8 +1,127 @@
 ﻿<Window x:Class="RemoteAppManagerClient.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525">
+        Title="RemoteAppManager" 
+        Height="350" 
+        Width="525" 
+        Background="#2C2D2E">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.6*"></RowDefinition>
+            <RowDefinition Height="0.4*"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <WrapPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+            <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" 
+                           Style="{StaticResource Label}"  
+                           Text="IP Address" />
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal">
+                    <TextBox Style="{StaticResource IPSegment}" Text="{Binding IPAddress.Segment1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource IPSeparator}" Text="." />
+                    <TextBox Style="{StaticResource IPSegment}" Text="{Binding IPAddress.Segment2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource IPSeparator}" Text="." />
+                    <TextBox Style="{StaticResource IPSegment}" Text="{Binding IPAddress.Segment3, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource IPSeparator}" Text="." />
+                    <TextBox Style="{StaticResource IPSegment}" Text="{Binding IPAddress.Segment4, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <Button Grid.Row="2" 
+                        Style="{StaticResource GlowButton}" 
+                        HorizontalAlignment="Right"
+                        Margin="0,5"
+                        Command="{Binding ConnectCommand}"
+                        Content="Connect">
+                </Button>
+            </Grid>
+        </WrapPanel>
         
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+            
+            <ListView Grid.Row="0" ItemsSource="{Binding ProcessCollection}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <Button Grid.Row="1" 
+                        Style="{StaticResource GlowButton}" 
+                        HorizontalAlignment="Right"
+                        Margin="0,5"
+                        Command="{Binding RequestProcessesCommand}"
+                        Content="Request processes">
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="2" 
+              HorizontalAlignment="Left"
+              Margin="10">
+            <Rectangle Grid.Row="1" 
+                       Width="30"
+                       Height="30"
+                       Visibility="Hidden">
+                <Rectangle.Fill>
+                    <RadialGradientBrush 
+                    GradientOrigin="0.5,0.5" 
+                    Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <RadialGradientBrush.GradientStops>
+                            <GradientStop Color="Red" Offset="0.5" />
+                            <GradientStop Color="#FF810000" Offset="1" />
+                            <GradientStop Color="Transparent" Offset="1" />
+                        </RadialGradientBrush.GradientStops>
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle Grid.Row="1" 
+                       Width="30" 
+                       Height="30"
+                       Visibility="{Binding IsReady, Converter={StaticResource Converter_BooleanToVisibility}}">
+                <Rectangle.Fill>
+                    <RadialGradientBrush 
+                    GradientOrigin="0.5,0.5" 
+                    Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <RadialGradientBrush.GradientStops>
+                            <GradientStop Color="Yellow" Offset="0.5" />
+                            <GradientStop Color="Yellow" Offset="1" />
+                            <GradientStop Color="Transparent" Offset="1" />
+                        </RadialGradientBrush.GradientStops>
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle Grid.Row="1" 
+                       Width="30" 
+                       Height="30"
+                       Visibility="{Binding IsConnected, Converter={StaticResource Converter_BooleanToVisibility}}">
+                <Rectangle.Fill>
+                    <RadialGradientBrush 
+                    GradientOrigin="0.5,0.5" 
+                    Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                        <RadialGradientBrush.GradientStops>
+                            <GradientStop Color="Green" Offset="0.5" />
+                            <GradientStop Color="Green" Offset="1" />
+                            <GradientStop Color="Transparent" Offset="1" />
+                        </RadialGradientBrush.GradientStops>
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+        </Grid>
     </Grid>
 </Window>

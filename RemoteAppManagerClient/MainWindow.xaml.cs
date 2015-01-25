@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Diagnostics;
 
 namespace RemoteAppManagerClient
 {
@@ -23,6 +24,11 @@ namespace RemoteAppManagerClient
         public MainWindow()
         {
             InitializeComponent();
+
+            Process[] procesess = Process.GetProcesses();
+
+            AppManagerClient client = new AppManagerClient();
+            this.DataContext = client;
         }
     }
 }

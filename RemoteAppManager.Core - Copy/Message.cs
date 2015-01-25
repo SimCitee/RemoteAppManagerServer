@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RemoteAppManagerServer
+namespace RemoteAppManager
 {
     public enum MessageTypes
     {
@@ -12,14 +12,14 @@ namespace RemoteAppManagerServer
         MESSAGE_REQUEST_PROCESSES = 2,
         MESSAGE_TEXT = 3,
         MESSAGE_IMAGE = 4,
-        MESSAGE_ACCEPT = 5,
+        MESSAGE_SUCCESS = 5,
         MESSAGE_ERROR = 6,
         MESSAGE_CLOSE = 7,
-        MESSAGE_DATA = 8,
+        MESSAGE_PROCESS = 8,
         MESSAGE_NONE = 9
     }
 
-    class Message
+    public class Message
     {
 
         private Object _data;
@@ -38,9 +38,11 @@ namespace RemoteAppManagerServer
 
         public Message() : this(MessageTypes.MESSAGE_NONE) { }
 
-        public Message(MessageTypes messageType)
-        {
+        public Message(MessageTypes messageType) : this(messageType, null) { }
+
+        public Message(MessageTypes messageType, Object data) {
             _messageType = messageType;
+            _data = data;
         }
     }
 }

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteAppManagerServer", "R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteAppManagerClient", "RemoteAppManagerClient\RemoteAppManagerClient.csproj", "{8E71B8F6-3C52-4286-8B28-8C16058D60C3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteAppManager.Core", "RemoteAppManager.Core\RemoteAppManager.Core.csproj", "{B6C8C98B-96EF-46FA-8800-2F2A6A391DB1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{8E71B8F6-3C52-4286-8B28-8C16058D60C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E71B8F6-3C52-4286-8B28-8C16058D60C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E71B8F6-3C52-4286-8B28-8C16058D60C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6C8C98B-96EF-46FA-8800-2F2A6A391DB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6C8C98B-96EF-46FA-8800-2F2A6A391DB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6C8C98B-96EF-46FA-8800-2F2A6A391DB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6C8C98B-96EF-46FA-8800-2F2A6A391DB1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
