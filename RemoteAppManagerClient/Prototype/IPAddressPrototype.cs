@@ -41,5 +41,9 @@ namespace RemoteAppManagerClient.Prototype
                     _segment4 > 0 && _segment4 < 255);
             }
         }
+
+        public String GetIPAdress() {
+            return _segment1 + "." + _segment2 + "." + _segment3 + "." + _segment4;
+        }
     }
 }

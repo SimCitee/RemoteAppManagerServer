@@ -163,7 +163,7 @@ namespace RemoteAppManagerClient
         public void Start() {
             try {
                 IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-                IPAddress ipAddress = ipHost.AddressList.Last();
+                IPAddress ipAddress = System.Net.IPAddress.Parse(_addressPrototype.GetIPAdress());
                 IPEndPoint remoteEndPoint = new IPEndPoint(ipAddress, ConnectionService.PORT);
 
                 Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -173,6 +173,7 @@ namespace RemoteAppManagerClient
                 ConnectionStatus = ConnectionStatuses.CONNECTING;
             }
             catch (Exception e) {
+                ConnectionStatus = ConnectionStatuses.DISCONNECTED;
                 Utils.Log(Utils.LogLevels.ERROR, e.ToString());
             }
         }
