@@ -22,6 +22,8 @@ namespace RemoteAppManager
         public const String DATA_END_DELIMITER = "</DATA>";
         public const String RESPONSE_START_DELIMITER = "<RESPONSE>";
         public const String RESPONSE_END_DELIMITER = "</RESPONSE>";
+        public const String IMAGE_START_DELIMITER = "<IMAGE>";
+        public const String IMAGE_END_DELIMITER = "</IMAGE>";
         public const String MESSAGETYPE_START_DELIMITER = "<MSGTYPE>";
         public const String MESSAGETYPE_END_DELIMITER = "</MSGTYPE>";
         #endregion
@@ -94,10 +96,13 @@ namespace RemoteAppManager
 
                         state.Builder.Clear();
                     }
-                    //else {
-                    //    handler.BeginReceive(state.Buffer, 0, StateObject.BUFFER_SIZE, 0,
-                    //                    new AsyncCallback(ReadCallback), state);
-                    //}
+                    else if (state.Builder.ToString().Contains(IMAGE_END_DELIMITER)) {
+                        int i = 0;
+                    }
+                    else {
+                        handler.BeginReceive(state.Buffer, 0, StateObject.BUFFER_SIZE, 0,
+                                        new AsyncCallback(ReadCallback), state);
+                    }
                 }
             }
             catch (Exception e) {
@@ -107,7 +112,8 @@ namespace RemoteAppManager
         }
 
         public void Send(Socket handler, Bitmap bitmap) {
-            byte[] byteData = Utils.Combine(Utils.ImageToByteArray(bitmap), Encoding.UTF8.GetBytes(RESPONSE_END_DELIMITER));
+            byte[] byteData = Utils.Combine(Encoding.UTF8.GetBytes(IMAGE_START_DELIMITER), Utils.ImageToByteArray(bitmap));
+            byteData = Utils.Combine(byteData, Encoding.UTF8.GetBytes(IMAGE_END_DELIMITER));
 
             if (byteData != null) {
                 Send(handler, byteData);

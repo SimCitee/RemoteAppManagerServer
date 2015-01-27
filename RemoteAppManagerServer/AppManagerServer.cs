@@ -130,12 +130,14 @@ namespace RemoteAppManagerServer
 
                     Connection.Send(Connection.State.WorkSocket, message);
 
-                    //Icon ico = Icon.ExtractAssociatedIcon(fileName);
-                    //if (ico != null) {
-                    //    Bitmap bitmap = ico.ToBitmap();
-                    //    bitmap.Tag = process.Id;
-                    //    Connection.Send(Connection.State.WorkSocket, bitmap);
-                    //}
+                    System.Threading.Thread.Sleep(1000);
+
+                    Icon ico = Icon.ExtractAssociatedIcon(fileName);
+                    if (ico != null) {
+                        Bitmap bitmap = ico.ToBitmap();
+                        bitmap.Tag = process.Id;
+                        Connection.Send(Connection.State.WorkSocket, bitmap);
+                    }
                 }
             }
             catch (Exception e) {

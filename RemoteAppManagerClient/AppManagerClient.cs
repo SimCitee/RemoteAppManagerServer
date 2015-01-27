@@ -223,14 +223,6 @@ namespace RemoteAppManagerClient
                     if (process == null) {
                         process = new ProcessPrototype(processID, dataArray[1]);
 
-                        //if (dataArray.Count() == 3) {
-                        //    BitmapImage icon = Utils.Base64StringToBitmapImage(dataArray[2]);
-
-                        //    if (icon != null) {
-                        //        process.AddIcon(icon);
-                        //    }
-                        //}
-
                         Application.Current.Dispatcher.BeginInvoke(
                             DispatcherPriority.Background,
                             new Action(() =>
@@ -282,7 +274,7 @@ namespace RemoteAppManagerClient
                     break;
             }
 
-            Connection.BeginReceive(Connection.State.WorkSocket);
+            //Connection.BeginReceive(Connection.State.WorkSocket);
         }
         #endregion
     }

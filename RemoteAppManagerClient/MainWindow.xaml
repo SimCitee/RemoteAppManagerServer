@@ -49,7 +49,12 @@
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             
-            <ListView Grid.Row="0" 
+            <Image Name="TestImage">
+                
+            </Image>
+
+
+            <!--<ListView Grid.Row="0" 
                       ItemsSource="{Binding ProcessCollection}"
                       VerticalAlignment="Top"
                       Height="Auto"
@@ -64,7 +69,7 @@
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>
-            </ListView>
+            </ListView>-->
 
             <Button Grid.Row="1" 
                         Style="{StaticResource GlowButton}" 

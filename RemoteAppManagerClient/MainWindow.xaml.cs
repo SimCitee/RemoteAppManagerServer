@@ -13,6 +13,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
+using System.Drawing;
+using System.Windows.Interop;
+using RemoteAppManager.Core;
 
 namespace RemoteAppManagerClient
 {
@@ -29,6 +32,22 @@ namespace RemoteAppManagerClient
 
             AppManagerClient client = new AppManagerClient();
             this.DataContext = client;
+
+
+            //Process[] processes = Process.GetProcesses();
+
+            //Icon ico = System.Drawing.Icon.ExtractAssociatedIcon(procesess[56].MainModule.FileName);
+
+
+            //Bitmap bitmap = ico.ToBitmap();
+            //IntPtr hBitmap = bitmap.GetHbitmap();
+
+            //ImageSource wpfBitmap =
+            //Imaging.CreateBitmapSourceFromHBitmap(
+            //          hBitmap, IntPtr.Zero, Int32Rect.Empty,
+            //          BitmapSizeOptions.FromEmptyOptions());
+
+            //TestImage.Source = wpfBitmap;
         }
     }
 }
