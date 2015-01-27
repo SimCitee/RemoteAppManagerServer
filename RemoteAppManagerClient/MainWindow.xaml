@@ -11,6 +11,7 @@
             <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="0.4*"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid>
             <Grid.RowDefinitions>
@@ -86,8 +87,28 @@
                         Content="Kill process">
             </Button>
         </Grid>
+        
+        <Grid Grid.Row="2">
+            
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
 
-        <Grid Grid.Row="2" 
+            <TextBox Grid.Row="0"
+                     Style="{StaticResource StartProcessTextBox}"
+                     Text="{Binding IPAddress.Segment1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            
+            <Button Grid.Row="1" 
+                        Style="{StaticResource GlowButton}" 
+                        HorizontalAlignment="Left"
+                        Margin="0,5"
+                        Command=""
+                        Content="Start process">
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="3" 
               HorizontalAlignment="Left"
               Margin="10">
             <Rectangle Grid.Row="1" 

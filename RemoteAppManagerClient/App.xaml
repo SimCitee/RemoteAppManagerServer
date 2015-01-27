@@ -36,6 +36,15 @@
             <Setter Property="FontWeight" Value="Bold"></Setter>
         </Style>
 
+        <Style x:Key="StartProcessTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Background" Value="White"></Setter>
+            <Setter Property="TextAlignment" Value="Left"></Setter>
+            <Setter Property="FontSize" Value="20"></Setter>
+            <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="MaxLength" Value="100"></Setter>
+            <Setter Property="Margin" Value="0 10 0 0"></Setter>
+        </Style>
+
         <Style x:Key="ConnectionLight" TargetType="{x:Type Rectangle}">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
