@@ -87,6 +87,7 @@ namespace RemoteAppManager
 
                 if (byteRead > 0) {
                     state.Builder.Append(Encoding.UTF8.GetString(state.Buffer, 0, byteRead));
+                    state.RawData = Utils.Combine(state.RawData, BitConverter.GetBytes(byteRead));
 
                     if (state.Builder.ToString().Contains(RESPONSE_END_DELIMITER)) {
                         Message message = BuildMessage(state.Builder.ToString());

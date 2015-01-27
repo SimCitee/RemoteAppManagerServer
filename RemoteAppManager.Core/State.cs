@@ -13,6 +13,7 @@ namespace RemoteAppManager
 
         private Socket _socket = null;
         private byte[] _buffer = new byte[BUFFER_SIZE];
+        private byte[] _rawData = new byte[10000];
         private StringBuilder _stringBuilder = new StringBuilder();
 
         public Socket WorkSocket {
@@ -22,6 +23,13 @@ namespace RemoteAppManager
 
         public byte[] Buffer {
             get { return _buffer; }
+        }
+
+        public byte[] RawData {
+            get { return _rawData; }
+            set {
+                _rawData = value;
+            }
         }
 
         public StringBuilder Builder {

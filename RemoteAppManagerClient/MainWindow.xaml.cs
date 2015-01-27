@@ -28,8 +28,6 @@ namespace RemoteAppManagerClient
         {
             InitializeComponent();
 
-            Process[] procesess = Process.GetProcesses();
-
             AppManagerClient client = new AppManagerClient();
             this.DataContext = client;
 
