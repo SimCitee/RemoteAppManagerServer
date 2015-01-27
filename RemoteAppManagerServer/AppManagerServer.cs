@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
@@ -17,7 +18,7 @@ namespace RemoteAppManagerServer
 
         #region Constants
         private const int MAX_CONNECTION = 1;
-        
+
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         #endregion
 
@@ -44,7 +45,7 @@ namespace RemoteAppManagerServer
             IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
             IPAddress ipAddress = ipHost.AddressList.Last();
             IPEndPoint localEndPoint = new IPEndPoint(ipAddress, ConnectionService.PORT);
-             
+
             Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             try {
@@ -93,12 +94,13 @@ namespace RemoteAppManagerServer
                 Process process = Process.GetProcessById(processID);
 
                 if (process != null) {
-                    process.Close();
                     process.Kill();
 
+                    System.Threading.Thread.Sleep(1000);
+
                     if (process.HasExited) {
-                        message.MessageType = MessageTypes.MESSAGE_SUCCESS;
-                        message.Data = process.ExitCode;
+                        message.MessageType = MessageTypes.MESSAGE_KILL_SUCCESS;
+                        message.Data = processID;
                     }
                     else {
                         message.MessageType = MessageTypes.MESSAGE_ERROR;
@@ -106,6 +108,8 @@ namespace RemoteAppManagerServer
                 }
             }
             catch (Exception e) {
+                ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
+                Utils.Log(Utils.LogLevels.WARNING, e.ToString());
                 message.MessageType = MessageTypes.MESSAGE_ERROR;
             }
 
@@ -118,14 +122,20 @@ namespace RemoteAppManagerServer
 
         private void TrySendProcess(Process process) {
             try {
-                if (process.Id > 0) { 
+                if (process.Id > 0) {
                     String fileName = process.MainModule.FileName;
                     String data = process.Id + ";" + process.ProcessName;
+
                     Message message = new Message(MessageTypes.MESSAGE_PROCESS, data);
 
                     Connection.Send(Connection.State.WorkSocket, message);
 
-                    Utils.Log(Utils.LogLevels.INFO, "Sent process: " + data);
+                    //Icon ico = Icon.ExtractAssociatedIcon(fileName);
+                    //if (ico != null) {
+                    //    Bitmap bitmap = ico.ToBitmap();
+                    //    bitmap.Tag = process.Id;
+                    //    Connection.Send(Connection.State.WorkSocket, bitmap);
+                    //}
                 }
             }
             catch (Exception e) {
@@ -138,6 +148,13 @@ namespace RemoteAppManagerServer
             switch (message.MessageType) {
                 case MessageTypes.MESSAGE_REQUEST_PROCESSES:
                     RequestProcesses();
+                    break;
+                case MessageTypes.MESSAGE_KILL_PROCESS:
+                    int processID;
+
+                    if (message.Data != null && Int32.TryParse(message.Data.ToString(), out processID)) {
+                        RequestKillProcess(processID);
+                    }
                     break;
             }
         }

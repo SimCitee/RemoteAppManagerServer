@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Sockets;
+using System.Drawing;
 using RemoteAppManager.Core;
 
 namespace RemoteAppManager
@@ -27,6 +29,8 @@ namespace RemoteAppManager
         public event ConnectionStateChangedEventHandler ConnectionStateChanged;
         public event MessageReceivedEventHandler MessageReceived;
 
+        //private static ManualResetEvent _sendDone = new ManualResetEvent(false);
+        //private static ManualResetEvent _receiveDone = new ManualResetEvent(false);
         private StateObject _state;
 
         #region View properties
@@ -42,8 +46,7 @@ namespace RemoteAppManager
         #endregion
 
         #region Class
-        public ConnectionService()
-        {
+        public ConnectionService() {
             _state = new StateObject();
         }
         #endregion
@@ -85,12 +88,17 @@ namespace RemoteAppManager
 
                     if (state.Builder.ToString().Contains(RESPONSE_END_DELIMITER)) {
                         Message message = BuildMessage(state.Builder.ToString());
-
                         if (message != null) {
                             OnMessageReceived(message);
                         }
+
+                        state.Builder.Clear();
                     }
-                }  
+                    //else {
+                    //    handler.BeginReceive(state.Buffer, 0, StateObject.BUFFER_SIZE, 0,
+                    //                    new AsyncCallback(ReadCallback), state);
+                    //}
+                }
             }
             catch (Exception e) {
                 OnConnectionStateChanged(EventArgs.Empty);
@@ -98,14 +106,29 @@ namespace RemoteAppManager
             }
         }
 
-        public void Send(Socket handler, Message msg)
-        {
+        public void Send(Socket handler, Bitmap bitmap) {
+            byte[] byteData = Utils.Combine(Utils.ImageToByteArray(bitmap), Encoding.UTF8.GetBytes(RESPONSE_END_DELIMITER));
+
+            if (byteData != null) {
+                Send(handler, byteData);
+            }
+        }
+
+        public void Send(Socket handler, Message msg) {
+            byte[] byteData = BuildData(msg);
+            
+            if (byteData != null) {
+                Send(handler, byteData);
+            }
+        }
+
+        public void Send(Socket handler, byte[] byteData) {
             try {
-                byte[] byteData = BuildData(msg);
                 handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
             }
             catch (Exception e) {
                 handler.Close();
+                OnConnectionStateChanged(EventArgs.Empty);
                 Utils.Log(Utils.LogLevels.ERROR, e.ToString());
             }
         }
@@ -117,27 +140,24 @@ namespace RemoteAppManager
                 int bytes = handler.EndSend(ar);
 
                 BeginReceive(handler);
-
-                //handler.Shutdown(SocketShutdown.Both);
-                //handler.Close();
             }
             catch (Exception e) {
-                Console.WriteLine(e.ToString());
+                OnConnectionStateChanged(EventArgs.Empty);
+                Utils.Log(Utils.LogLevels.ERROR, e.ToString());
             }
         }
 
-        private byte[] BuildData(Message msg)
-        {
+        private byte[] BuildData(Message msg) {
             String dataText = RESPONSE_START_DELIMITER;
 
             dataText += MESSAGETYPE_START_DELIMITER + msg.MessageType + MESSAGETYPE_END_DELIMITER;
 
-            switch (msg.MessageType)
-            {
+            switch (msg.MessageType) {
+                case MessageTypes.MESSAGE_KILL_PROCESS:
+                case MessageTypes.MESSAGE_KILL_SUCCESS:
                 case MessageTypes.MESSAGE_PROCESS:
                 case MessageTypes.MESSAGE_TEXT:
-                    if (msg.Data != null)
-                    {
+                    if (msg.Data != null) {
                         dataText += DATA_START_DELIMITER + msg.Data.ToString() + DATA_END_DELIMITER;
                     }
                     break;
@@ -150,18 +170,17 @@ namespace RemoteAppManager
             return data;
         }
 
-        private Message BuildMessage(String data)
-        {
+        private Message BuildMessage(String data) {
             String messageTypeText = GetMessageType(data);
 
-            if (!String.IsNullOrEmpty(messageTypeText))
-            {
+            if (!String.IsNullOrEmpty(messageTypeText)) {
 
-                MessageTypes messageType = (MessageTypes)Enum.Parse(typeof (MessageTypes), messageTypeText, false);
+                MessageTypes messageType = (MessageTypes)Enum.Parse(typeof(MessageTypes), messageTypeText, false);
                 Message msg = new Message(messageType);
 
-                switch (messageType)
-                {
+                switch (messageType) {
+                    case MessageTypes.MESSAGE_KILL_PROCESS:
+                    case MessageTypes.MESSAGE_KILL_SUCCESS:
                     case MessageTypes.MESSAGE_PROCESS:
                     case MessageTypes.MESSAGE_TEXT:
                         msg.Data = GetMessageData(data);
@@ -174,32 +193,26 @@ namespace RemoteAppManager
             return null;
         }
 
-        private String GetMessageResponse(String msg)
-        {
+        private String GetMessageResponse(String msg) {
             return GetMessageSegment(msg, RESPONSE_START_DELIMITER, RESPONSE_END_DELIMITER);
         }
 
-        private String GetMessageType(String msg)
-        {
+        private String GetMessageType(String msg) {
             return GetMessageSegment(msg, MESSAGETYPE_START_DELIMITER, MESSAGETYPE_END_DELIMITER);
         }
 
-        private String GetMessageData(String msg)
-        {
+        private String GetMessageData(String msg) {
             return GetMessageSegment(msg, DATA_START_DELIMITER, DATA_END_DELIMITER);
         }
 
-        private String GetMessageSegment(String msg, String startDelimiter, String endDelimiter)
-        {
+        private String GetMessageSegment(String msg, String startDelimiter, String endDelimiter) {
             int indexStart, indexEnd = 0;
             String data = "";
 
             indexStart = msg.IndexOf(startDelimiter, StringComparison.InvariantCultureIgnoreCase);
-            if (indexStart > -1)
-            {
+            if (indexStart > -1) {
                 indexEnd = msg.IndexOf(endDelimiter, indexStart + 1, StringComparison.InvariantCultureIgnoreCase);
-                if (indexEnd > -1)
-                {
+                if (indexEnd > -1) {
                     data = msg.Substring(indexStart + startDelimiter.Length, indexEnd - indexStart - startDelimiter.Length);
                 }
             }

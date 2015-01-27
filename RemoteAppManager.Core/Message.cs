@@ -12,11 +12,12 @@ namespace RemoteAppManager
         MESSAGE_REQUEST_PROCESSES = 2,
         MESSAGE_TEXT = 3,
         MESSAGE_IMAGE = 4,
-        MESSAGE_SUCCESS = 5,
-        MESSAGE_ERROR = 6,
-        MESSAGE_CLOSE = 7,
-        MESSAGE_PROCESS = 8,
-        MESSAGE_NONE = 9
+        MESSAGE_ERROR = 5,
+        MESSAGE_CLOSE = 6,
+        MESSAGE_PROCESS = 7,
+        MESSAGE_NONE = 8,
+        MESSAGE_KILL_PROCESS = 9,
+        MESSAGE_KILL_SUCCESS = 10
     }
 
     public class Message

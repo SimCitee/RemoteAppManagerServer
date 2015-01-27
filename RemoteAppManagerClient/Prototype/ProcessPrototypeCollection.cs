@@ -20,7 +20,7 @@ namespace RemoteAppManagerClient
             }
 
             if (e.Action == NotifyCollectionChangedAction.Remove) {
-                foreach (ProcessPrototype element in e.NewItems) {
+                foreach (ProcessPrototype element in e.OldItems) {
                     element.PropertyChanged += null;
                 }
             }

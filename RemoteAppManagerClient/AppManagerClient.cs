@@ -9,6 +9,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Drawing;
+using System.Windows.Media.Imaging;
 using Microsoft.TeamFoundation.MVVM;
 using RemoteAppManager;
 using RemoteAppManager.Core;
@@ -19,12 +21,9 @@ namespace RemoteAppManagerClient
 {
     class AppManagerClient : RemoteAppManagerClient.MVVM.ViewModelBase, IAppManagerClient
     {
-        private static ManualResetEvent _connectDone = new ManualResetEvent(false);
-        private static ManualResetEvent _sendDone = new ManualResetEvent(false);
-        private static ManualResetEvent _receiveDone = new ManualResetEvent(false);
-
         private IPAddressPrototype _addressPrototype;
         private ProcessPrototypeCollection _processCollection;
+        private ProcessPrototype _selectedPrototype;
         private ConnectionService _connection;
         private ConnectionStatuses _connectionStatus;
 
@@ -38,6 +37,14 @@ namespace RemoteAppManagerClient
         #endregion
 
         #region Properties
+        public ProcessPrototype SelectedPrototype {
+            get { return _selectedPrototype; }
+            set {
+                _selectedPrototype = value;
+                NotifyPropertyChanged("SelectedPrototype");
+            }
+        }
+
         public ConnectionStatuses ConnectionStatus {
             get { return _connectionStatus; }
             set {
@@ -96,6 +103,7 @@ namespace RemoteAppManagerClient
 
             CreateConnectCommand();
             CreateRequestProcessesCommand();
+            CreateKillProcessCommand();
         }
         #endregion
 
@@ -110,7 +118,7 @@ namespace RemoteAppManagerClient
         }
 
         private bool CanExecuteConnectCommand(Object param) {
-            return true;
+            return !Connection.IsConnected;
         }
 
         private void ConnectCommandExecute(Object param) {
@@ -133,6 +141,23 @@ namespace RemoteAppManagerClient
         private void RequestProcessesCommandExecute(Object param) {
             RequestProcesses();
         }
+
+        private void CreateKillProcessCommand() {
+            KillProcessCommand = new RelayCommand(KillProcessCommandExecute, CanExecuteKillProcessCommand);
+        }
+
+        public ICommand KillProcessCommand {
+            get;
+            internal set;
+        }
+
+        private bool CanExecuteKillProcessCommand(Object param) {
+            return IsConnected && _selectedPrototype != null && _selectedPrototype.ID > 0;
+        }
+
+        private void KillProcessCommandExecute(Object param) {
+            RequestKillProcess(_selectedPrototype.ID);
+        }
         #endregion
 
         public void Start() {
@@ -145,8 +170,6 @@ namespace RemoteAppManagerClient
                 client.BeginConnect(remoteEndPoint, new AsyncCallback(ConnectCallback), client);
                 Connection.State.WorkSocket = client;
                 
-                _connectDone.WaitOne();
-
                 ConnectionStatus = ConnectionStatuses.CONNECTING;
             }
             catch (Exception e) {
@@ -159,7 +182,6 @@ namespace RemoteAppManagerClient
                 Socket client = (Socket)ar.AsyncState;
                 client.EndConnect(ar);
 
-                _connectDone.Set();
                 ConnectionStatus = ConnectionStatuses.CONNECTED;
             }
             catch (Exception e) {
@@ -177,7 +199,9 @@ namespace RemoteAppManagerClient
         }
 
         public void RequestKillProcess(int processID) {
-            throw new NotImplementedException();
+            Message message = new Message(MessageTypes.MESSAGE_KILL_PROCESS, processID);
+
+            Connection.Send(Connection.State.WorkSocket, message);
         }
 
         public void RequestStartProcess(string processName) {
@@ -191,12 +215,20 @@ namespace RemoteAppManagerClient
                 String[] dataArray = data.Split(';');
                 int processID;
 
-                if (dataArray.Count() == 2 && Int32.TryParse(dataArray[0], out processID)) {
+                if (dataArray.Count() >= 2 && Int32.TryParse(dataArray[0], out processID)) {
 
                     ProcessPrototype process = ProcessCollection.FirstOrDefault(x => x.ID == processID);
                         
                     if (process == null) {
                         process = new ProcessPrototype(processID, dataArray[1]);
+
+                        //if (dataArray.Count() == 3) {
+                        //    BitmapImage icon = Utils.Base64StringToBitmapImage(dataArray[2]);
+
+                        //    if (icon != null) {
+                        //        process.AddIcon(icon);
+                        //    }
+                        //}
 
                         Application.Current.Dispatcher.BeginInvoke(
                             DispatcherPriority.Background,
@@ -204,8 +236,27 @@ namespace RemoteAppManagerClient
                             {
                                 ProcessCollection.Add(process);
                             }));
+                    }
+                }
+            }
+        }
 
-                        Connection.BeginReceive(Connection.State.WorkSocket);
+        public void RemoveProcess(Object messageData) {
+            if (messageData != null && messageData.GetType() == typeof(String)) {
+                String data = (String)messageData;
+                int processID;
+
+                if (Int32.TryParse(data, out processID)) {
+
+                    ProcessPrototype process = ProcessCollection.FirstOrDefault(x => x.ID == processID);
+
+                    if (process != null) {
+                        Application.Current.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Background,
+                            new Action(() =>
+                            {
+                                ProcessCollection.Remove(process);
+                            }));
                     }
                 }
             }
@@ -222,10 +273,15 @@ namespace RemoteAppManagerClient
                 case MessageTypes.MESSAGE_PROCESS:
                     AddProcess(message.Data);
                     break;
+                case MessageTypes.MESSAGE_KILL_SUCCESS:
+                    RemoveProcess(message.Data);
+                    break;
                 case MessageTypes.MESSAGE_CLOSE:
                     Connection.Close();
                     break;
             }
+
+            Connection.BeginReceive(Connection.State.WorkSocket);
         }
         #endregion
     }
