@@ -6,21 +6,24 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Interop;
 using System.Xaml;
 
 namespace RemoteAppManager.Core
 {
+    public enum LogLevels
+    {
+        INFO = 1,
+        WARNING = 2,
+        ERROR = 3
+    }
+
     public class Utils
     {
-        public enum LogLevels
-        {
-            INFO = 1,
-            WARNING = 2,
-            ERROR = 3
-        }
-
         public static void Log(LogLevels logLevel, String message) {
             String log = String.Empty;
 
@@ -46,23 +49,27 @@ namespace RemoteAppManager.Core
                 return base64String;
             }
             catch (Exception e) {
-                return "";
+                return String.Empty;
             }
         }
 
         public static Bitmap Base64StringToBitmap(String base64String) {
             Bitmap bmpReturn = null;
 
-            byte[] byteBuffer = Convert.FromBase64String(base64String);
-            MemoryStream memoryStream = new MemoryStream(byteBuffer);
+            try {
+                byte[] byteBuffer = Convert.FromBase64String(base64String);
+                MemoryStream memoryStream = new MemoryStream(byteBuffer);
 
-            memoryStream.Position = 0;
+                memoryStream.Position = 0;
 
-            bmpReturn = (Bitmap)Bitmap.FromStream(memoryStream);
+                bmpReturn = (Bitmap)Bitmap.FromStream(memoryStream);
 
-            memoryStream.Close();
-            memoryStream = null;
-            byteBuffer = null;
+                memoryStream.Close();
+                memoryStream = null;
+                byteBuffer = null;
+            }
+            catch (Exception e) {
+            }
 
             return bmpReturn;
         }
@@ -102,6 +109,38 @@ namespace RemoteAppManager.Core
             System.Buffer.BlockCopy(a, 0, c, 0, a.Length);
             System.Buffer.BlockCopy(b, 0, c, a.Length, b.Length);
             return c;
+        }
+
+        public static ImageSource BitmapToImageSource(Bitmap bitmap) {
+            ImageSource imageSource = null;
+
+            try {
+                IntPtr hBitmap = bitmap.GetHbitmap();
+                imageSource =
+                Imaging.CreateBitmapSourceFromHBitmap(
+                          hBitmap, IntPtr.Zero, Int32Rect.Empty,
+                          BitmapSizeOptions.FromEmptyOptions());
+                imageSource.Freeze();
+            }
+            catch (Exception e) {
+                Log(LogLevels.ERROR, e.ToString());
+            }
+
+            return imageSource;
+        }
+
+        public static String GetTextBetween(String msg, String startDelimiter, String endDelimiter) {
+            int indexStart, indexEnd = 0;
+            String data = "";
+
+            indexStart = msg.IndexOf(startDelimiter, StringComparison.InvariantCultureIgnoreCase);
+            if (indexStart > -1) {
+                indexEnd = msg.IndexOf(endDelimiter, indexStart + 1, StringComparison.InvariantCultureIgnoreCase);
+                if (indexEnd > -1) {
+                    data = msg.Substring(indexStart + startDelimiter.Length, indexEnd - indexStart - startDelimiter.Length);
+                }
+            }
+            return data;
         }
     }
 }

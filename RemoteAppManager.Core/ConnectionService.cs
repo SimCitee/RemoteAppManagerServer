@@ -7,56 +7,51 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Drawing;
 using RemoteAppManager.Core;
+using RemoteAppManager.Packets;
 
 namespace RemoteAppManager
 {
-    public delegate void ConnectionStateChangedEventHandler(object sender, EventArgs e);
+    #region Enums
+    public enum ConnectionStatuses
+    {
+        CONNECTING = 1,
+        CONNECTED = 2,
+        DISCONNECTED = 3
+    }
+    #endregion
+
+    public delegate void ConnectionStateChangedEventHandler(ConnectionStatuses status);
     public delegate void MessageReceivedEventHandler(Message message);
 
     public class ConnectionService : IConnectionService
     {
-        #region Constants
-        public const int PORT = 9999;
-
-        public const String DATA_START_DELIMITER = "<DATA>";
-        public const String DATA_END_DELIMITER = "</DATA>";
-        public const String RESPONSE_START_DELIMITER = "<RESPONSE>";
-        public const String RESPONSE_END_DELIMITER = "</RESPONSE>";
-        public const String IMAGE_START_DELIMITER = "<IMAGE>";
-        public const String IMAGE_END_DELIMITER = "</IMAGE>";
-        public const String MESSAGETYPE_START_DELIMITER = "<MSGTYPE>";
-        public const String MESSAGETYPE_END_DELIMITER = "</MSGTYPE>";
-        #endregion
-
         public event ConnectionStateChangedEventHandler ConnectionStateChanged;
         public event MessageReceivedEventHandler MessageReceived;
 
-        //private static ManualResetEvent _sendDone = new ManualResetEvent(false);
-        //private static ManualResetEvent _receiveDone = new ManualResetEvent(false);
-        private StateObject _state;
+        private Socket _socket;
+        private byte[] _buffer = new byte[PacketStructure.BUFFER_SIZE];
 
-        #region View properties
-        public StateObject State {
-            get { return _state; }
-        }
+        #region Constants
+        public const int APPLICATION_PORT = 9999;
+        #endregion
 
-        public Boolean IsConnected {
-            get {
-                return State.IsSocketConnected();
-            }
+        #region Properties
+        public Socket Socket {
+            get { return _socket; }
+            set { _socket = value; }
         }
         #endregion
 
-        #region Class
-        public ConnectionService() {
-            _state = new StateObject();
+        #region View properties
+        public byte[] Buffer {
+            get { return _buffer; }
         }
         #endregion
 
         #region Events
-        protected virtual void OnConnectionStateChanged(EventArgs e) {
+        protected virtual void OnConnectionStateChanged(ConnectionStatuses status) {
             if (ConnectionStateChanged != null) {
-                ConnectionStateChanged(this, e);
+                ConnectionStateChanged(status);
             }
         }
 
@@ -68,167 +63,60 @@ namespace RemoteAppManager
         #endregion
 
         #region Methods
-        public void BeginReceive(Socket handler) {
-            handler.BeginReceive(State.Buffer, 0, StateObject.BUFFER_SIZE, 0, new AsyncCallback(ReadCallback), State);
+        public void Receive(Socket handler) {
+            handler.BeginReceive(_buffer, 0, PacketStructure.BUFFER_SIZE, 0, new AsyncCallback(ReceiveCallback), handler);
         }
 
-        public void ReadCallback(IAsyncResult ar) {
-            StateObject state = (StateObject)ar.AsyncState;
-            Socket handler = state.WorkSocket;
-
+        private void ReceiveCallback(IAsyncResult ar) {
             try {
-                if (!state.IsSocketConnected()) {
-                    handler.Close();
-                    OnConnectionStateChanged(EventArgs.Empty);
-                    return;
-                }
+                Socket clientSocket = ar.AsyncState as Socket;
+                int bufferSize = clientSocket.EndReceive(ar);
+                byte[] packet = new byte[bufferSize];
+                Array.Copy(_buffer, packet, packet.Length);
 
-                int byteRead = handler.EndReceive(ar);
+                Handle(packet, clientSocket);
 
-                if (byteRead > 0) {
-                    state.Builder.Append(Encoding.UTF8.GetString(state.Buffer, 0, byteRead));
-                    state.RawData = Utils.Combine(state.RawData, BitConverter.GetBytes(byteRead));
-
-                    if (state.Builder.ToString().Contains(RESPONSE_END_DELIMITER)) {
-                        Message message = BuildMessage(state.Builder.ToString());
-                        if (message != null) {
-                            OnMessageReceived(message);
-                        }
-
-                        state.Builder.Clear();
-                    }
-                    else if (state.Builder.ToString().Contains(IMAGE_END_DELIMITER)) {
-                        int i = 0;
-                    }
-                    else {
-                        handler.BeginReceive(state.Buffer, 0, StateObject.BUFFER_SIZE, 0,
-                                        new AsyncCallback(ReadCallback), state);
-                    }
-                }
+                _buffer = new byte[PacketStructure.BUFFER_SIZE];
+                clientSocket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, ReceiveCallback, clientSocket);
             }
             catch (Exception e) {
-                OnConnectionStateChanged(EventArgs.Empty);
-                Utils.Log(Utils.LogLevels.ERROR, e.ToString());
+                OnConnectionStateChanged(ConnectionStatuses.DISCONNECTED);
+                Utils.Log(LogLevels.ERROR, e.ToString());
             }
         }
 
-        public void Send(Socket handler, Bitmap bitmap) {
-            byte[] byteData = Utils.Combine(Encoding.UTF8.GetBytes(IMAGE_START_DELIMITER), Utils.ImageToByteArray(bitmap));
-            byteData = Utils.Combine(byteData, Encoding.UTF8.GetBytes(IMAGE_END_DELIMITER));
-
-            if (byteData != null) {
-                Send(handler, byteData);
-            }
-        }
-
-        public void Send(Socket handler, Message msg) {
-            byte[] byteData = BuildData(msg);
-            
-            if (byteData != null) {
-                Send(handler, byteData);
-            }
-        }
-
-        public void Send(Socket handler, byte[] byteData) {
+        public void Send(Socket handler, byte[] data) {
             try {
-                handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
+                handler.Send(data);
             }
             catch (Exception e) {
                 handler.Close();
-                OnConnectionStateChanged(EventArgs.Empty);
-                Utils.Log(Utils.LogLevels.ERROR, e.ToString());
+                OnConnectionStateChanged(ConnectionStatuses.DISCONNECTED);
+                Utils.Log(LogLevels.ERROR, e.ToString());
             }
         }
 
-        public void SendCallback(IAsyncResult ar) {
+        public void Disconnect() {
             try {
-                Socket handler = (Socket)ar.AsyncState;
+                if (Socket != null && Socket.Connected) {
+                    Socket.Shutdown(SocketShutdown.Both);
+                    Socket.Close();
 
-                int bytes = handler.EndSend(ar);
-
-                BeginReceive(handler);
+                    OnConnectionStateChanged(ConnectionStatuses.DISCONNECTED);
+                }
             }
             catch (Exception e) {
-                OnConnectionStateChanged(EventArgs.Empty);
-                Utils.Log(Utils.LogLevels.ERROR, e.ToString());
+                Utils.Log(LogLevels.ERROR, e.ToString());
             }
         }
 
-        private byte[] BuildData(Message msg) {
-            String dataText = RESPONSE_START_DELIMITER;
+        private void Handle(byte[] packet, Socket clientSocket) {
+            ushort packetLength = BitConverter.ToUInt16(packet, 0);
+            ushort packetType = BitConverter.ToUInt16(packet, 2);
+            Message message = new Message(packet);
 
-            dataText += MESSAGETYPE_START_DELIMITER + msg.MessageType + MESSAGETYPE_END_DELIMITER;
-
-            switch (msg.MessageType) {
-                case MessageTypes.MESSAGE_KILL_PROCESS:
-                case MessageTypes.MESSAGE_KILL_SUCCESS:
-                case MessageTypes.MESSAGE_PROCESS:
-                case MessageTypes.MESSAGE_TEXT:
-                    if (msg.Data != null) {
-                        dataText += DATA_START_DELIMITER + msg.Data.ToString() + DATA_END_DELIMITER;
-                    }
-                    break;
-            }
-
-            dataText += RESPONSE_END_DELIMITER;
-
-            byte[] data = Encoding.UTF8.GetBytes(dataText);
-
-            return data;
-        }
-
-        private Message BuildMessage(String data) {
-            String messageTypeText = GetMessageType(data);
-
-            if (!String.IsNullOrEmpty(messageTypeText)) {
-
-                MessageTypes messageType = (MessageTypes)Enum.Parse(typeof(MessageTypes), messageTypeText, false);
-                Message msg = new Message(messageType);
-
-                switch (messageType) {
-                    case MessageTypes.MESSAGE_KILL_PROCESS:
-                    case MessageTypes.MESSAGE_KILL_SUCCESS:
-                    case MessageTypes.MESSAGE_PROCESS:
-                    case MessageTypes.MESSAGE_TEXT:
-                        msg.Data = GetMessageData(data);
-                        break;
-                }
-
-                return msg;
-            }
-
-            return null;
-        }
-
-        private String GetMessageResponse(String msg) {
-            return GetMessageSegment(msg, RESPONSE_START_DELIMITER, RESPONSE_END_DELIMITER);
-        }
-
-        private String GetMessageType(String msg) {
-            return GetMessageSegment(msg, MESSAGETYPE_START_DELIMITER, MESSAGETYPE_END_DELIMITER);
-        }
-
-        private String GetMessageData(String msg) {
-            return GetMessageSegment(msg, DATA_START_DELIMITER, DATA_END_DELIMITER);
-        }
-
-        private String GetMessageSegment(String msg, String startDelimiter, String endDelimiter) {
-            int indexStart, indexEnd = 0;
-            String data = "";
-
-            indexStart = msg.IndexOf(startDelimiter, StringComparison.InvariantCultureIgnoreCase);
-            if (indexStart > -1) {
-                indexEnd = msg.IndexOf(endDelimiter, indexStart + 1, StringComparison.InvariantCultureIgnoreCase);
-                if (indexEnd > -1) {
-                    data = msg.Substring(indexStart + startDelimiter.Length, indexEnd - indexStart - startDelimiter.Length);
-                }
-            }
-            return data;
-        }
-
-        public void Close() {
-            if (State.WorkSocket != null && State.WorkSocket.Connected) {
-                State.WorkSocket.Close();
+            if (message != null) {
+                OnMessageReceived(message);
             }
         }
         #endregion

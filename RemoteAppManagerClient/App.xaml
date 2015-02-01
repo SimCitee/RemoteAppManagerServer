@@ -8,6 +8,7 @@
 
         <Style x:Key="Label" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="VerticalAlignment" Value="Bottom"></Setter>
+            <Setter Property="Margin" Value="0,0,0,5" />
             <Setter Property="FontSize" Value="20"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
             <Setter Property="Foreground" Value="#C4FA42"></Setter>
@@ -34,8 +35,11 @@
             <Setter Property="Foreground" Value="#A8FF0B"></Setter>
             <Setter Property="FontSize" Value="16"></Setter>
             <Setter Property="FontWeight" Value="Bold"></Setter>
+            <Setter Property="Padding" Value="10, 5"></Setter>
+            <Setter Property="Margin" Value="0, 8" />
+            <Setter Property="Background" Value="#2C2D2E" />
         </Style>
-
+ 
         <Style x:Key="StartProcessTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Background" Value="White"></Setter>
             <Setter Property="TextAlignment" Value="Left"></Setter>
@@ -73,5 +77,43 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        
+        <ControlTemplate x:Key="ButtonControlTemplate" TargetType="{x:Type Button}">
+            <Border x:Name="Bd" BorderBrush="#C4FA42" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" ContentStringFormat="{TemplateBinding ContentStringFormat}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <EventTrigger RoutedEvent="Button.MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimation From="#2C2D2E" To="#6E6E6E" Storyboard.TargetProperty="(Button.Background).(SolidColorBrush.Color)" FillBehavior="HoldEnd"  Duration="0:0:0.4"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="Button.MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <ColorAnimation From="#6E6E6E" To="#2C2D2E" Storyboard.TargetProperty="(Button.Background).(SolidColorBrush.Color)" FillBehavior="HoldEnd"  Duration="0:0:0.4"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                
+                <!--<Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" TargetName="Bd" Value="#80DADADA"/>
+                    <Setter Property="Background" TargetName="Bd" Value="#210080FF"/>
+                </Trigger>-->
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="BorderBrush" TargetName="Bd" Value="#C4FA42"/>
+                    <Setter Property="Background" TargetName="Bd" Value="#2C2D2E"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="BorderBrush" TargetName="Bd" Value="#C4FA42"/>
+                    <Setter Property="Background" TargetName="Bd" Value="#2C2D2E"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
     </Application.Resources>
 </Application>

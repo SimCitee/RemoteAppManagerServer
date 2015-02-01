@@ -46,8 +46,9 @@
   <ItemGroup>
     <Compile Include="ConnectionService.cs" />
     <Compile Include="IConnectionService.cs" />
-    <Compile Include="Message.cs" />
-    <Compile Include="State.cs" />
+    <Compile Include="Packets\IPacketHandler.cs" />
+    <Compile Include="Packets\Message.cs" />
+    <Compile Include="Packets\PacketStructure.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

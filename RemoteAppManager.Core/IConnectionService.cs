@@ -10,9 +10,9 @@ namespace RemoteAppManager
     interface IConnectionService
     {
         #region Methods
-        void ReadCallback(IAsyncResult ar);
-        void Send(Socket handler, Message msg);
-        void SendCallback(IAsyncResult ar);
+        void Receive(Socket handler);
+        void Send(Socket handler, byte[] data);
+        void Disconnect();
         #endregion
     }
 }

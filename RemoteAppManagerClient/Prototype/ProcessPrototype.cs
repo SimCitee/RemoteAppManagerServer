@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using RemoteAppManagerClient.MVVM;
 
@@ -14,13 +17,11 @@ namespace RemoteAppManagerClient.Prototype
         #region Properties
         private int _ID;
         private String _name;
-        private BitmapImage _icon;
+        private ImageSource _icon;
 
-        public int ID
-        {
+        public int ID {
             get { return _ID; }
-            set
-            {
+            set {
                 _ID = value;
                 NotifyPropertyChanged("ID");
             }
@@ -36,7 +37,7 @@ namespace RemoteAppManagerClient.Prototype
         #endregion
 
         #region View properties
-        public BitmapImage Icon {
+        public ImageSource Icon {
             get { return _icon; }
         }
         #endregion
@@ -49,9 +50,10 @@ namespace RemoteAppManagerClient.Prototype
         #endregion
 
         #region Methods
-        public void AddIcon(BitmapImage icon) {
+        public void AddIcon(ImageSource icon) {
             if (icon != null) {
                 _icon = icon;
+                NotifyPropertyChanged("Icon");
             }
         }
         #endregion

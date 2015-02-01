@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Interop;
 using RemoteAppManager.Core;
+using RemoteAppManagerClient.ViewModel;
 
 namespace RemoteAppManagerClient
 {
@@ -28,24 +29,28 @@ namespace RemoteAppManagerClient
         {
             InitializeComponent();
 
-            AppManagerClient client = new AppManagerClient();
+            ClientViewModel client = new ClientViewModel();
             this.DataContext = client;
+        }
 
+        private void TextBox_GotFocus(object sender, RoutedEventArgs e) {
+            SelectAll(sender);
+        }
 
-            //Process[] processes = Process.GetProcesses();
+        private void SelectAll(object sender) {
+            (sender as TextBox).SelectAll();
+        }
 
-            //Icon ico = System.Drawing.Icon.ExtractAssociatedIcon(procesess[56].MainModule.FileName);
+        private void TextBox_GotFocus_1(object sender, RoutedEventArgs e) {
+            SelectAll(sender);
+        }
 
+        private void TextBox_GotFocus_2(object sender, RoutedEventArgs e) {
+            SelectAll(sender);
+        }
 
-            //Bitmap bitmap = ico.ToBitmap();
-            //IntPtr hBitmap = bitmap.GetHbitmap();
-
-            //ImageSource wpfBitmap =
-            //Imaging.CreateBitmapSourceFromHBitmap(
-            //          hBitmap, IntPtr.Zero, Int32Rect.Empty,
-            //          BitmapSizeOptions.FromEmptyOptions());
-
-            //TestImage.Source = wpfBitmap;
+        private void TextBox_GotFocus_3(object sender, RoutedEventArgs e) {
+            SelectAll(sender);
         }
     }
 }

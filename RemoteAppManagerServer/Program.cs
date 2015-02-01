@@ -8,10 +8,10 @@ namespace RemoteAppManagerServer
 {
     class Program
     {
-        AppManagerServer _server;
+        ServerConnectionService _server;
         static void Main(string[] args)
         {
-            AppManagerServer server = new AppManagerServer();
+            ServerConnectionService server = new ServerConnectionService();
             server.Listen();
         }
     }

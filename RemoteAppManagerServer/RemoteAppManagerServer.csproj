@@ -57,10 +57,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppManagerServer.cs" />
+    <Compile Include="ServerConnectionService.cs" />
     <Compile Include="IAppManagerServer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Prototype\ProcessIconPrototype.cs" />
     <Compile Include="ServerUtils.cs" />
   </ItemGroup>
   <ItemGroup>
