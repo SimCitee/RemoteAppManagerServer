@@ -28,7 +28,7 @@ namespace RemoteAppManagerServer
 
         #region Class
         public ServerConnectionService() {
-            //ConnectionStateChanged += new ConnectionStateChangedEventHandler(_connection_ConnectionStateChangedEventHandler);
+            ConnectionStateChanged += new ConnectionStateChangedEventHandler(ServerConnectionService_ConnectionStateChanged);
             MessageReceived += new MessageReceivedEventHandler(ServerConnectionService_MessageReceived); 
         }
         #endregion
@@ -99,7 +99,7 @@ namespace RemoteAppManagerServer
                 Icon ico = Icon.ExtractAssociatedIcon(prototype.FileName);
                 if (ico != null) {
                     Bitmap bitmap = ico.ToBitmap();
-                    Message message = new Message(MessageTypes.MESSAGE_IMAGE, Utils.BitmapToBase64String(bitmap) + "<ID>" + prototype.ProcessID + "</ID>");
+                    Message message = new Message(MessageTypes.MESSAGE_IMAGE, Utils.BitmapToBase64String(bitmap) + ConnectionService.PROCESS_START_DELIMITER + prototype.ProcessID + ConnectionService.PROCESS_END_DELIMITER);
 
                     Send(this.Socket, message.Data);
 
@@ -116,7 +116,6 @@ namespace RemoteAppManagerServer
                     Message message = new Message(MessageTypes.MESSAGE_PROCESS, data);
 
                     Send(Socket, message.Data);
-                    ServerUtils.DisplayMessage("Sent process " + process.Id + " " + process.ProcessName);
 
                     System.Threading.Thread.Sleep(10);
                 }
@@ -136,32 +135,32 @@ namespace RemoteAppManagerServer
         }
 
         public void RequestKillProcess(int processID) {
-            //Message message = new Message();
+            Message message = null;
 
-            //try {
-            //    Process process = Process.GetProcessById(processID);
+            ServerUtils.DisplayMessage("Received request to kill process [" + processID + "]");
 
-            //    if (process != null) {
-            //        process.Kill();
+            try {
+                Process process = Process.GetProcessById(processID);
 
-            //        System.Threading.Thread.Sleep(1000);
+                if (process != null) {
+                    ServerUtils.DisplayMessage("Killing process " + process.ProcessName);
+                    process.Kill();
 
-            //        if (process.HasExited) {
-            //            message.MessageType = MessageTypes.MESSAGE_KILL_SUCCESS;
-            //            message.Data = processID;
-            //        }
-            //        else {
-            //            message.MessageType = MessageTypes.MESSAGE_ERROR;
-            //        }
-            //    }
-            //}
-            //catch (Exception e) {
-            //    ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
-            //    Utils.Log(Utils.LogLevels.WARNING, e.ToString());
-            //    message.MessageType = MessageTypes.MESSAGE_ERROR;
-            //}
+                    if (process.WaitForExit(2000) && process.HasExited) {
+                        message = new Message(MessageTypes.MESSAGE_KILL_SUCCESS, processID.ToString());
+                    }
+                    else {
+                        message = new Message(MessageTypes.MESSAGE_ERROR);
+                    }
+                }
+            }
+            catch (Exception e) {
+                ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
+                Utils.Log(LogLevels.WARNING, e.ToString());
+                message = new Message(MessageTypes.MESSAGE_ERROR);
+            }
 
-            //Connection.Send(Connection.State.WorkSocket, message);
+            Send(Socket, message.Data);
         }
 
         public void RequestStartProcess(string process) {
@@ -169,6 +168,14 @@ namespace RemoteAppManagerServer
         }    
 
         #region Events
+        private void ServerConnectionService_ConnectionStateChanged(ConnectionStatuses status) {
+            switch (status) {
+                case ConnectionStatuses.DISCONNECTED:
+                    ServerUtils.DisplayMessage("Lost connection to remote...");
+                    break;
+            }
+        }
+
         private void ServerConnectionService_MessageReceived(Message message) {
             switch (message.Type) {
                 case MessageTypes.MESSAGE_REQUEST_PROCESSES:
@@ -177,13 +184,13 @@ namespace RemoteAppManagerServer
                 case MessageTypes.MESSAGE_REQUEST_ICONS:
                     RequestIcons();
                     break;
-                //case MessageTypes.MESSAGE_KILL_PROCESS:
-                //    int processID;
+                case MessageTypes.MESSAGE_KILL_PROCESS:
+                    int processID;
 
-                //    if (message.Data != null && Int32.TryParse(message.Data.ToString(), out processID)) {
-                //        RequestKillProcess(processID);
-                //    }
-                //    break;
+                    if (message.Data != null && Int32.TryParse(message.Text, out processID)) {
+                        RequestKillProcess(processID);
+                    }
+                    break;
             }
         }
         #endregion

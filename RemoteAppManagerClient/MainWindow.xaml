@@ -111,7 +111,6 @@
         </Grid>
         
         <Grid Grid.Row="2">
-            
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
@@ -132,10 +131,9 @@
         </Grid>
 
         <Grid Grid.Row="3" 
-              HorizontalAlignment="Left"
+              HorizontalAlignment="Right"
               Margin="10">
-            <Rectangle Grid.Row="1" 
-                       Width="30"
+            <Rectangle Width="30"
                        Height="30"
                        Visibility="Hidden">
                 <Rectangle.Fill>
@@ -150,8 +148,7 @@
                     </RadialGradientBrush>
                 </Rectangle.Fill>
             </Rectangle>
-            <Rectangle Grid.Row="1"
-                       DataContext="{Binding IsReady}"
+            <Rectangle DataContext="{Binding IsReady}"
                        Style="{StaticResource ConnectionLight}">
                 <Rectangle.Fill>
                     <RadialGradientBrush 
@@ -166,8 +163,7 @@
                     </RadialGradientBrush>
                 </Rectangle.Fill>
             </Rectangle>
-            <Rectangle Grid.Row="1" 
-                       DataContext="{Binding IsConnected}"
+            <Rectangle DataContext="{Binding IsConnected}"
                        Style="{StaticResource ConnectionLight}">
                 <Rectangle.Fill>
                     <RadialGradientBrush 

@@ -33,6 +33,9 @@ namespace RemoteAppManager
 
         #region Constants
         public const int APPLICATION_PORT = 9999;
+
+        public const String PROCESS_START_DELIMITER = "<ID>";
+        public const String PROCESS_END_DELIMITER = "</ID>";
         #endregion
 
         #region Properties

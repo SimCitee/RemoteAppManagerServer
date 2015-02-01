@@ -174,7 +174,7 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         private void KillProcessCommandExecute(Object param) {
-            //RequestKillProcess(_selectedPrototype.ID);
+            RequestKillProcess(_selectedPrototype.ID);
         }
         #endregion
 
@@ -195,12 +195,12 @@ namespace RemoteAppManagerClient.ViewModel
                 case MessageTypes.MESSAGE_PROCESS:
                     AddProcess(message);
                     break;
-            //    case MessageTypes.MESSAGE_KILL_SUCCESS:
-            //        RemoveProcess(message.Data);
-            //        break;
-            //    case MessageTypes.MESSAGE_CLOSE:
-            //        Connection.Close();
-            //        break;
+                case MessageTypes.MESSAGE_KILL_SUCCESS:
+                    RemoveProcess(message);
+                    break;
+                case MessageTypes.MESSAGE_CLOSE:
+                    Connection.Disconnect();
+                    break;
             }
         }
         #endregion
@@ -244,24 +244,29 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         protected override void RemoveProcess(Message message) {
-            //if (messageData != null && messageData.GetType() == typeof(String)) {
-            //    String data = (String)messageData;
-            //    int processID;
+            if (message != null) {
+                String data = message.Text;
+                int processID;
 
-            //    if (Int32.TryParse(data, out processID)) {
+                if (Int32.TryParse(data, out processID)) {
 
-            //        ProcessPrototype process = ProcessCollection.FirstOrDefault(x => x.ID == processID);
+                    ProcessPrototype process = ProcessCollection.FirstOrDefault(x => x.ID == processID);
 
-            //        if (process != null) {
-            //            Application.Current.Dispatcher.BeginInvoke(
-            //                DispatcherPriority.Background,
-            //                new Action(() =>
-            //                {
-            //                    ProcessCollection.Remove(process);
-            //                }));
-            //        }
-            //    }
-            //}
+                    if (process != null) {
+                        Application.Current.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Background,
+                            new Action(() =>
+                            {
+                                ProcessCollection.Remove(process);
+                            }));
+                    }
+
+                    if (SelectedPrototype != null && SelectedPrototype.ID == processID) {
+                        SelectedPrototype = null;
+                        RefreshProperties();
+                    }
+                }
+            }
         }
 
         protected override void RequestIcons() {
@@ -273,8 +278,8 @@ namespace RemoteAppManagerClient.ViewModel
             if (message != null) {
                 int processID;
 
-                if (Int32.TryParse(Utils.GetTextBetween(message.Text, "<ID>", "</ID>"), out processID)) {
-                    String imageText = message.Text.Substring(0, message.Text.IndexOf("<ID>"));
+                if (Int32.TryParse(Utils.GetTextBetween(message.Text, ConnectionService.PROCESS_START_DELIMITER, ConnectionService.PROCESS_END_DELIMITER), out processID)) {
+                    String imageText = message.Text.Substring(0, message.Text.IndexOf(ConnectionService.PROCESS_START_DELIMITER));
 
                     Bitmap bitmap = Utils.Base64StringToBitmap(imageText);
 
@@ -295,6 +300,7 @@ namespace RemoteAppManagerClient.ViewModel
         public void RefreshProperties() {
             NotifyPropertyChanged("IsReady");
             NotifyPropertyChanged("IsConnected");
+            NotifyPropertyChanged("SelectedPrototype");
         }
         #endregion
     }

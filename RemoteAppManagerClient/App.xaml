@@ -97,18 +97,8 @@
                         </Storyboard>
                     </BeginStoryboard>
                 </EventTrigger>
-                
-                <!--<Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" TargetName="Bd" Value="#80DADADA"/>
-                    <Setter Property="Background" TargetName="Bd" Value="#210080FF"/>
-                </Trigger>-->
-                <Trigger Property="IsKeyboardFocused" Value="True">
-                    <Setter Property="BorderBrush" TargetName="Bd" Value="#C4FA42"/>
-                    <Setter Property="Background" TargetName="Bd" Value="#2C2D2E"/>
-                </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="BorderBrush" TargetName="Bd" Value="#C4FA42"/>
-                    <Setter Property="Background" TargetName="Bd" Value="#2C2D2E"/>
+                    <Setter Property="Background" TargetName="Bd" Value="#5C5C5C"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
