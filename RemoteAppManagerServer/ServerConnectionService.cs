@@ -103,7 +103,7 @@ namespace RemoteAppManagerServer
 
                     Send(this.Socket, message.Data);
 
-                    System.Threading.Thread.Sleep(10);
+                    System.Threading.Thread.Sleep(1000);
                 }
             }
         }
@@ -117,7 +117,7 @@ namespace RemoteAppManagerServer
 
                     Send(Socket, message.Data);
 
-                    System.Threading.Thread.Sleep(10);
+                    System.Threading.Thread.Sleep(500);
                 }
             }
             catch (Exception e) {
