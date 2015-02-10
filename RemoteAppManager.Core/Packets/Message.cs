@@ -8,18 +8,22 @@ namespace RemoteAppManager.Packets
 {
     public enum MessageTypes : ushort
     {
-        MESSAGE_REQUEST_SEARCH = 1,
-        MESSAGE_REQUEST_PROCESSES = 2,
-        MESSAGE_TEXT = 3,
-        MESSAGE_IMAGE = 4,
-        MESSAGE_ERROR = 5,
-        MESSAGE_CLOSE = 6,
-        MESSAGE_PROCESS = 7,
-        MESSAGE_NONE = 8,
-        MESSAGE_KILL_PROCESS = 9,
-        MESSAGE_KILL_SUCCESS = 10,
-        MESSAGE_REQUEST_PROCESSES_END = 11,
-        MESSAGE_REQUEST_ICONS = 12
+        REQUEST_SEARCH = 1,
+        REQUEST_PROCESSES = 2,
+        REQUEST_NEXT_PROCESS = 3,
+        REQUEST_ICONS = 4,
+        REQUEST_NEXT_ICON = 5,
+        REQUEST_CLOSE = 6,
+        REQUEST_KILL_PROCESS = 7,
+
+        RESPONSE_IMAGE = 8,
+        RESPONSE_ERROR = 9,
+        RESPONSE_PROCESS = 10,
+        RESPONSE_PROCESS_END = 11,
+        RESPONSE_KILL_SUCCESS = 12,
+        RESPONSE_RECEIVED_SUCCESS = 13,
+
+        NONE = 14
     }
 
     public class Message : PacketStructure
@@ -53,6 +57,18 @@ namespace RemoteAppManager.Packets
             set {
                 _text = value;
                 WriteString(value, 4);
+            }
+        }
+
+        public int GetIntegerValue {
+            get {
+                int value;
+
+                if (this.Data != null && Int32.TryParse(this.Text, out value)) {
+                    return value;
+                }
+
+                return 0;
             }
         }
     }

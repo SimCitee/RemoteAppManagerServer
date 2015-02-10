@@ -30,6 +30,9 @@ namespace RemoteAppManager
 
         private Socket _socket;
         private byte[] _buffer = new byte[PacketStructure.BUFFER_SIZE];
+        private bool _isWaitingResponse;
+        private object _propertyLock = new object();
+        private MessageTypes _responseType;
 
         #region Constants
         public const int APPLICATION_PORT = 9999;
@@ -42,6 +45,20 @@ namespace RemoteAppManager
         public Socket Socket {
             get { return _socket; }
             set { _socket = value; }
+        }
+
+        public bool IsWaitingResponse {
+            get { return _isWaitingResponse; }
+            set {
+                lock (_propertyLock) {
+                    _isWaitingResponse = value;
+                }
+            }
+        }
+
+        public MessageTypes ResponseType {
+            get { return _responseType; }
+            set { _responseType = value; }
         }
         #endregion
 
@@ -88,8 +105,22 @@ namespace RemoteAppManager
             }
         }
 
+        public void Send(Socket handler, Message message) {
+            Send(handler, message.Data);
+        }
+
         public void Send(Socket handler, byte[] data) {
+            Send(handler, data, false);
+        }
+
+        public void Send(Socket handler, byte[] data, bool awaitResponse) {
             try {
+                IsWaitingResponse = awaitResponse;
+
+                if (IsWaitingResponse) {
+                    ResponseType = MessageTypes.NONE;
+                }
+
                 handler.Send(data);
             }
             catch (Exception e) {
@@ -119,6 +150,10 @@ namespace RemoteAppManager
             Message message = new Message(packet);
 
             if (message != null) {
+                if (message.Type >= MessageTypes.RESPONSE_IMAGE) {
+                    ResponseType = message.Type;
+                }
+
                 OnMessageReceived(message);
             }
         }

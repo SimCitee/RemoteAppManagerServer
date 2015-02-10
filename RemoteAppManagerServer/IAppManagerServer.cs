@@ -10,7 +10,7 @@ namespace RemoteAppManagerServer
     {
         void Listen();
         void AcceptCallback(IAsyncResult ar);
-        void RequestProcesses();
+        void SendProcess(int previousProcessID);
         void RequestKillProcess(int processID);
         void RequestStartProcess(String process);
     }

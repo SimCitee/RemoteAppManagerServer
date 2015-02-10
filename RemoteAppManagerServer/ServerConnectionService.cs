@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
+using System.Timers;
 using RemoteAppManager;
 using RemoteAppManager.Core;
 using RemoteAppManagerServer.Prototype;
@@ -24,12 +25,14 @@ namespace RemoteAppManagerServer
 
         #region Properties
         private static ManualResetEvent allDone = new ManualResetEvent(false);
+        private Process[] _processesCacheList = null;
+        List<ProcessIconPrototype> _processPrototypesList = null;
         #endregion
 
         #region Class
         public ServerConnectionService() {
             ConnectionStateChanged += new ConnectionStateChangedEventHandler(ServerConnectionService_ConnectionStateChanged);
-            MessageReceived += new MessageReceivedEventHandler(ServerConnectionService_MessageReceived); 
+            MessageReceived += new MessageReceivedEventHandler(ServerConnectionService_MessageReceived);
         }
         #endregion
 
@@ -63,61 +66,97 @@ namespace RemoteAppManagerServer
             allDone.Set();
 
             Socket listener = (Socket)ar.AsyncState;
-            Socket = listener.EndAccept(ar);
+            this.Socket = listener.EndAccept(ar);
 
             ServerUtils.DisplayMessage("Connection accepted from remote " + Socket.RemoteEndPoint.ToString());
 
             Receive(Socket);
         }
 
-        public void RequestProcesses() {
-            Process[] processes = Process.GetProcesses();
+        private void InitSendProcess() {
             ServerUtils.DisplayMessage("Received request for processes");
+            _processesCacheList = Process.GetProcesses();
 
-            foreach (Process process in processes) {
+            Process process = _processesCacheList.FirstOrDefault();
+
+            if (process != null) {
                 TrySendProcess(process);
             }
-
-            Send(this.Socket, new Message(MessageTypes.MESSAGE_REQUEST_PROCESSES_END).Data);
         }
 
-        public void RequestIcons() {
-            Process[] processes = Process.GetProcesses();
-            List<ProcessIconPrototype> processPrototypes = new List<ProcessIconPrototype>();
-            ServerUtils.DisplayMessage("Received request for icons");
+        /// <summary>
+        /// Send processes to the client
+        /// </summary>
+        public void SendProcess(int previousProcessID) {
+            if (_processesCacheList != null) {
+                Process process = _processesCacheList.SkipWhile(x => x.Id != previousProcessID).Skip(1).FirstOrDefault();
 
-            foreach (Process process in processes) {
-                String fileName = TryGetProcessFilename(process);
+                if (process != null) {
+                    TrySendProcess(process);
 
-                if (!String.IsNullOrEmpty(fileName)) {
-                    ProcessIconPrototype proto = new ProcessIconPrototype(process.Id, fileName);
-                    processPrototypes.Add(proto);
+                    if (process == _processesCacheList.Last()) {
+                        Send(this.Socket, new Message(MessageTypes.RESPONSE_PROCESS_END).Data);
+                    }
                 }
             }
+        }
 
-            foreach (ProcessIconPrototype prototype in processPrototypes) {
-                Icon ico = Icon.ExtractAssociatedIcon(prototype.FileName);
-                if (ico != null) {
-                    Bitmap bitmap = ico.ToBitmap();
-                    Message message = new Message(MessageTypes.MESSAGE_IMAGE, Utils.BitmapToBase64String(bitmap) + ConnectionService.PROCESS_START_DELIMITER + prototype.ProcessID + ConnectionService.PROCESS_END_DELIMITER);
+        private void InitSendProcessIcons() {
+            ServerUtils.DisplayMessage("Received request for icons");
 
-                    Send(this.Socket, message.Data);
+            _processPrototypesList = new List<ProcessIconPrototype>();
 
-                    System.Threading.Thread.Sleep(1000);
+            //build filename list
+            if (_processesCacheList != null) {
+                foreach (Process process in _processesCacheList) {
+                    String fileName = TryGetProcessFilename(process);
+
+                    if (!String.IsNullOrEmpty(fileName)) {
+                        ProcessIconPrototype proto = new ProcessIconPrototype(process.Id, fileName);
+                        _processPrototypesList.Add(proto);
+                    }
+                }
+
+                if (_processPrototypesList.Count > 0) {
+                    SendProcessIcon(0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Send process icon to the client
+        /// </summary>
+        private void SendProcessIcon(int previousProcessID) {
+            if (_processPrototypesList != null) {
+                ProcessIconPrototype prototype = null;
+
+                if (previousProcessID == 0) {
+                    prototype = _processPrototypesList.FirstOrDefault();
+                }
+                else {
+                    prototype = _processPrototypesList.SkipWhile(x => x.ProcessID != previousProcessID).Skip(1).FirstOrDefault();
+                }
+
+                if (prototype != null) {
+                    Icon ico = Icon.ExtractAssociatedIcon(prototype.FileName);
+                    if (ico != null) {
+                        Bitmap bitmap = ico.ToBitmap();
+                        Message message = new Message(MessageTypes.RESPONSE_IMAGE, Utils.BitmapToBase64String(bitmap) + ConnectionService.PROCESS_START_DELIMITER + prototype.ProcessID + ConnectionService.PROCESS_END_DELIMITER);
+
+                        Send(this.Socket, message.Data, true);
+                    }
                 }
             }
         }
 
         private void TrySendProcess(Process process) {
             try {
-                if (process.Id > 0) {
-                    
+                if (Socket.Connected && process.Id > 0) {
+
                     String data = process.Id + ";" + process.ProcessName;
-                    Message message = new Message(MessageTypes.MESSAGE_PROCESS, data);
+                    Message message = new Message(MessageTypes.RESPONSE_PROCESS, data);
 
-                    Send(Socket, message.Data);
-
-                    System.Threading.Thread.Sleep(500);
+                    Send(Socket, message.Data, true);
                 }
             }
             catch (Exception e) {
@@ -134,38 +173,44 @@ namespace RemoteAppManagerServer
             }
         }
 
+        /// <summary>
+        /// Try and kill the process requested by the client
+        /// </summary>
+        /// <param name="processID"></param>
         public void RequestKillProcess(int processID) {
-            Message message = null;
+            if (processID > 0) {
+                Message message = null;
 
-            ServerUtils.DisplayMessage("Received request to kill process [" + processID + "]");
+                ServerUtils.DisplayMessage("Received request to kill process [" + processID + "]");
 
-            try {
-                Process process = Process.GetProcessById(processID);
+                try {
+                    Process process = Process.GetProcessById(processID);
 
-                if (process != null) {
-                    ServerUtils.DisplayMessage("Killing process " + process.ProcessName);
-                    process.Kill();
+                    if (process != null) {
+                        ServerUtils.DisplayMessage("Killing process " + process.ProcessName);
+                        process.Kill();
 
-                    if (process.WaitForExit(2000) && process.HasExited) {
-                        message = new Message(MessageTypes.MESSAGE_KILL_SUCCESS, processID.ToString());
-                    }
-                    else {
-                        message = new Message(MessageTypes.MESSAGE_ERROR);
+                        if (process.WaitForExit(2000) && process.HasExited) {
+                            message = new Message(MessageTypes.RESPONSE_KILL_SUCCESS, processID.ToString());
+                        }
+                        else {
+                            message = new Message(MessageTypes.RESPONSE_ERROR);
+                        }
                     }
                 }
-            }
-            catch (Exception e) {
-                ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
-                Utils.Log(LogLevels.WARNING, e.ToString());
-                message = new Message(MessageTypes.MESSAGE_ERROR);
-            }
+                catch (Exception e) {
+                    ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
+                    Utils.Log(LogLevels.WARNING, e.ToString());
+                    message = new Message(MessageTypes.RESPONSE_ERROR);
+                }
 
-            Send(Socket, message.Data);
+                Send(Socket, message.Data);
+            }
         }
 
         public void RequestStartProcess(string process) {
             throw new NotImplementedException();
-        }    
+        }
 
         #region Events
         private void ServerConnectionService_ConnectionStateChanged(ConnectionStatuses status) {
@@ -176,20 +221,26 @@ namespace RemoteAppManagerServer
             }
         }
 
-        private void ServerConnectionService_MessageReceived(Message message) {
+        /// <summary>
+        /// Handle message received from the connection service
+        /// </summary>
+        /// <param name="message">Message received</param>
+        public void ServerConnectionService_MessageReceived(Message message) {
             switch (message.Type) {
-                case MessageTypes.MESSAGE_REQUEST_PROCESSES:
-                    RequestProcesses();
+                case MessageTypes.REQUEST_PROCESSES:
+                    InitSendProcess();
                     break;
-                case MessageTypes.MESSAGE_REQUEST_ICONS:
-                    RequestIcons();
+                case MessageTypes.REQUEST_NEXT_PROCESS:
+                    SendProcess(message.GetIntegerValue);
                     break;
-                case MessageTypes.MESSAGE_KILL_PROCESS:
-                    int processID;
-
-                    if (message.Data != null && Int32.TryParse(message.Text, out processID)) {
-                        RequestKillProcess(processID);
-                    }
+                case MessageTypes.REQUEST_ICONS:
+                    InitSendProcessIcons();
+                    break;
+                case MessageTypes.REQUEST_NEXT_ICON:
+                    SendProcessIcon(message.GetIntegerValue);
+                    break;
+                case MessageTypes.REQUEST_KILL_PROCESS:
+                    RequestKillProcess(message.GetIntegerValue);
                     break;
             }
         }

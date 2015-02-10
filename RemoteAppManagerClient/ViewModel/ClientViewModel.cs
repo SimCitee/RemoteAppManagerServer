@@ -137,9 +137,6 @@ namespace RemoteAppManagerClient.ViewModel
         private void DisconnectCommandExecute(Object param) {
             Connection.Disconnect();
 
-            SelectedPrototype = null;
-            ProcessCollection.Clear();
-
             RefreshProperties();
         }
 
@@ -180,25 +177,35 @@ namespace RemoteAppManagerClient.ViewModel
 
         #region Sub-model events
         private void _connection_ConnectionStateChangedEventHandler(ConnectionStatuses status) {
+            if (status == ConnectionStatuses.DISCONNECTED) {
+                SelectedPrototype = null;
+                Application.Current.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Background,
+                            new Action(() =>
+                            {
+                                ProcessCollection.Clear();
+                            }));
+            }
+
             ConnectionStatus = status;
             RefreshProperties();
         }
 
         private void _connection_MessageReceivedEventHandler(Message message) {
             switch (message.Type) {
-                case MessageTypes.MESSAGE_REQUEST_PROCESSES_END:
+                case MessageTypes.RESPONSE_PROCESS_END:
                     RequestIcons();
                     break;
-                case MessageTypes.MESSAGE_IMAGE:
+                case MessageTypes.RESPONSE_IMAGE:
                     AddProcessIcon(message);
                     break;
-                case MessageTypes.MESSAGE_PROCESS:
+                case MessageTypes.RESPONSE_PROCESS:
                     AddProcess(message);
                     break;
-                case MessageTypes.MESSAGE_KILL_SUCCESS:
+                case MessageTypes.RESPONSE_KILL_SUCCESS:
                     RemoveProcess(message);
                     break;
-                case MessageTypes.MESSAGE_CLOSE:
+                case MessageTypes.REQUEST_CLOSE:
                     Connection.Disconnect();
                     break;
             }
@@ -207,12 +214,12 @@ namespace RemoteAppManagerClient.ViewModel
 
         #region Methods
         protected override void RequestProcesses() {
-            Message message = new Message(MessageTypes.MESSAGE_REQUEST_PROCESSES);
+            Message message = new Message(MessageTypes.REQUEST_PROCESSES);
             Connection.Send(Connection.Socket, message.Data);
         }
 
         protected override void RequestKillProcess(int processID) {
-            Message message = new Message(MessageTypes.MESSAGE_KILL_PROCESS, processID.ToString());
+            Message message = new Message(MessageTypes.REQUEST_KILL_PROCESS, processID.ToString());
             Connection.Send(Connection.Socket, message.Data);
         }
 
@@ -238,6 +245,8 @@ namespace RemoteAppManagerClient.ViewModel
                             {
                                 ProcessCollection.Add(process);
                             }));
+
+                        Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_NEXT_PROCESS, process.ID.ToString()));
                     }
                 }
             }
@@ -270,7 +279,7 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         protected override void RequestIcons() {
-            Message message = new Message(MessageTypes.MESSAGE_REQUEST_ICONS);
+            Message message = new Message(MessageTypes.REQUEST_ICONS);
             Connection.Send(Connection.Socket, message.Data);
         }
 
@@ -292,6 +301,8 @@ namespace RemoteAppManagerClient.ViewModel
 
                             prototype.AddIcon(imageSource);
                         }
+
+                        Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_NEXT_ICON, prototype.ID.ToString()));
                     }
                 }
             }
