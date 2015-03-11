@@ -12,6 +12,6 @@ namespace RemoteAppManagerServer
         void AcceptCallback(IAsyncResult ar);
         void SendProcess(int previousProcessID);
         void RequestKillProcess(int processID);
-        void RequestStartProcess(String process);
+        void RequestSearchProcess(String process);
     }
 }

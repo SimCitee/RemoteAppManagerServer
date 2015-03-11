@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,11 @@ using RemoteAppManager;
 using RemoteAppManager.Core;
 using RemoteAppManagerServer.Prototype;
 using RemoteAppManager.Packets;
+using Microsoft.Win32;
+using Shell32;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Windows.Forms;
 
 namespace RemoteAppManagerServer
 {
@@ -27,6 +33,8 @@ namespace RemoteAppManagerServer
         private static ManualResetEvent allDone = new ManualResetEvent(false);
         private Process[] _processesCacheList = null;
         List<ProcessIconPrototype> _processPrototypesList = null;
+        private List<ProcessToStart> _processesToStartList = null;
+        private List<string> _imageStringList = null;
         #endregion
 
         #region Class
@@ -41,8 +49,17 @@ namespace RemoteAppManagerServer
 
             IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
             IPAddress ipAddress = ipHost.AddressList.Last();
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, ConnectionService.APPLICATION_PORT);
 
+            foreach (IPAddress ip in ipHost.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddress = ip;
+                    break;
+                }
+            }
+
+            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, ConnectionService.APPLICATION_PORT);
             Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             try {
@@ -95,7 +112,7 @@ namespace RemoteAppManagerServer
                     TrySendProcess(process);
 
                     if (process == _processesCacheList.Last()) {
-                        Send(this.Socket, new Message(MessageTypes.RESPONSE_PROCESS_END).Data);
+                        Send(this.Socket, new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_END).Data);
                     }
                 }
             }
@@ -141,7 +158,7 @@ namespace RemoteAppManagerServer
                     Icon ico = Icon.ExtractAssociatedIcon(prototype.FileName);
                     if (ico != null) {
                         Bitmap bitmap = ico.ToBitmap();
-                        Message message = new Message(MessageTypes.RESPONSE_IMAGE, Utils.BitmapToBase64String(bitmap) + ConnectionService.PROCESS_START_DELIMITER + prototype.ProcessID + ConnectionService.PROCESS_END_DELIMITER);
+                        RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_IMAGE, Utils.BitmapToBase64String(bitmap) + ConnectionService.PROCESS_START_DELIMITER + prototype.ProcessID + ConnectionService.PROCESS_END_DELIMITER);
 
                         Send(this.Socket, message.Data, true);
                     }
@@ -154,7 +171,7 @@ namespace RemoteAppManagerServer
                 if (Socket.Connected && process.Id > 0) {
 
                     String data = process.Id + ";" + process.ProcessName;
-                    Message message = new Message(MessageTypes.RESPONSE_PROCESS, data);
+                    RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS, data);
 
                     Send(Socket, message.Data, true);
                 }
@@ -179,7 +196,7 @@ namespace RemoteAppManagerServer
         /// <param name="processID"></param>
         public void RequestKillProcess(int processID) {
             if (processID > 0) {
-                Message message = null;
+                RemoteAppManager.Packets.Message message = null;
 
                 ServerUtils.DisplayMessage("Received request to kill process [" + processID + "]");
 
@@ -191,25 +208,160 @@ namespace RemoteAppManagerServer
                         process.Kill();
 
                         if (process.WaitForExit(2000) && process.HasExited) {
-                            message = new Message(MessageTypes.RESPONSE_KILL_SUCCESS, processID.ToString());
+                            message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_KILL_SUCCESS, processID.ToString());
                         }
                         else {
-                            message = new Message(MessageTypes.RESPONSE_ERROR);
+                            message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_ERROR);
                         }
                     }
                 }
                 catch (Exception e) {
                     ServerUtils.DisplayMessage("Could not kill process [" + processID + "]");
                     Utils.Log(LogLevels.WARNING, e.ToString());
-                    message = new Message(MessageTypes.RESPONSE_ERROR);
+                    message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_ERROR);
                 }
 
                 Send(Socket, message.Data);
             }
         }
 
-        public void RequestStartProcess(string process) {
-            throw new NotImplementedException();
+        public void RequestSearchProcess(string process) {
+            string currentUser = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            string localMachine32 = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+            string localMachine64 = @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
+            RegistryKey key;
+            _processesToStartList = new List<ProcessToStart>();
+
+            key = Registry.CurrentUser.OpenSubKey(currentUser);
+            SearchSubKey(process, key, _processesToStartList);
+
+            key = Registry.LocalMachine.OpenSubKey(localMachine32);
+            SearchSubKey(process, key, _processesToStartList);
+
+            key = Registry.LocalMachine.OpenSubKey(localMachine64);
+            SearchSubKey(process, key, _processesToStartList);
+
+            TrySendProcessToStart(_processesToStartList.FirstOrDefault());
+        }
+
+        private static void SearchSubKey(string process, RegistryKey key, List<ProcessToStart> processesToStartList)
+        {
+            RegistryKey subkey;
+            string name;
+
+            foreach (string keyName in key.GetSubKeyNames())
+            {
+                try
+                {
+                    subkey = key.OpenSubKey(keyName);
+                    name = subkey.GetValue("DisplayName").ToString();
+
+                    if (name.IndexOf(process, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        foreach (string filePath in Directory.GetFiles(subkey.GetValue("InstallLocation").ToString(), "*.exe"))
+                        {
+                            if (processesToStartList.Where(x => x.FileName == filePath).Count() == 0)
+                            {
+                                ProcessToStart pts = new ProcessToStart(processesToStartList.Count(), name, filePath);
+                                processesToStartList.Add(pts);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                { }
+            }
+        }
+
+        private void TrySendProcessToStart(ProcessToStart process)
+        {
+            try
+            {
+                if (Socket.Connected && process.ID >= 0)
+                {
+
+                    String data = process.ID + ";" + process.Name;
+                    RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_TO_START, data);
+
+                    Send(Socket, message.Data, true);
+                }
+            }
+            catch (Exception e)
+            {
+                Utils.Log(LogLevels.WARNING, "Process not sent " + process.ToString());
+            }
+        }
+
+        public void SendProcessToStart(int previousProcessID)
+        {
+            if (_processesToStartList != null)
+            {
+                ProcessToStart process = _processesToStartList.SkipWhile(x => x.ID != previousProcessID).Skip(1).FirstOrDefault();
+
+                if (process != null)
+                {
+                    TrySendProcessToStart(process);
+                }
+                else
+                {
+                    Send(this.Socket, new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_TO_START_END).Data);
+                }
+            }
+        }
+
+        public void StartProcess(int processID)
+        {
+            if (_processesToStartList != null)
+            {
+                Process myProcess;
+                myProcess = Process.Start(_processesToStartList.Where(x => x.ID == processID).Select(x => x.FileName).First());
+                
+                System.Threading.Thread.Sleep (5000);
+
+                PrintScreen();
+            }
+        }
+
+        private void PrintScreen()
+        {
+            Bitmap printscreen = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+
+            Graphics graphics = Graphics.FromImage(printscreen as Image);
+
+            graphics.CopyFromScreen(0, 0, 0, 0, printscreen.Size);
+
+            //printscreen.Save(@"C:\Users\Gabriel\Desktop\StartedProcess.png");
+
+            string image = Utils.BitmapToBase64String(printscreen);
+
+            _imageStringList = Enumerable.Range(0, image.Length / 3000).Select(i => image.Substring(i * 3000, 3000)).ToList();
+
+            SendProcessImage(_imageStringList.First());
+        }
+
+        private void SendProcessImage(String imageString)
+        {
+            RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_IMAGE, imageString + ConnectionService.PROCESS_START_DELIMITER + "0" + ConnectionService.PROCESS_END_DELIMITER);
+
+            Send(this.Socket, message.Data, true);
+        }
+
+        private void SendNextProcessImage(int previousImagePiece)
+        {
+            previousImagePiece++;
+
+            string imageString = _imageStringList.ElementAtOrDefault(previousImagePiece);
+
+            if (imageString != null)
+            {
+                RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_IMAGE, imageString + ConnectionService.PROCESS_START_DELIMITER + previousImagePiece + ConnectionService.PROCESS_END_DELIMITER);
+
+                Send(this.Socket, message.Data, true);
+            }
+            else
+            {
+                Send(this.Socket, new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_IMAGE_END).Data);
+            }
         }
 
         #region Events
@@ -225,7 +377,7 @@ namespace RemoteAppManagerServer
         /// Handle message received from the connection service
         /// </summary>
         /// <param name="message">Message received</param>
-        public void ServerConnectionService_MessageReceived(Message message) {
+        public void ServerConnectionService_MessageReceived(RemoteAppManager.Packets.Message message) {
             switch (message.Type) {
                 case MessageTypes.REQUEST_PROCESSES:
                     InitSendProcess();
@@ -241,6 +393,18 @@ namespace RemoteAppManagerServer
                     break;
                 case MessageTypes.REQUEST_KILL_PROCESS:
                     RequestKillProcess(message.GetIntegerValue);
+                    break;
+                case MessageTypes.REQUEST_SEARCH_PROCESS:
+                    RequestSearchProcess(message.Text);
+                    break;
+                case MessageTypes.REQUEST_NEXT_PROCESS_TO_START:
+                    SendProcessToStart(message.GetIntegerValue);
+                    break;
+                case MessageTypes.REQUEST_START_PROCESS:
+                    StartProcess(message.GetIntegerValue);
+                    break;
+                case MessageTypes.REQUEST_PROCESS_IMAGE_NEXT:
+                    SendNextProcessImage(message.GetIntegerValue);
                     break;
             }
         }

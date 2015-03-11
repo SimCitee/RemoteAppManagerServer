@@ -25,7 +25,12 @@ namespace RemoteAppManagerClient.ViewModel
         private ConnectionStatuses _connectionStatus;
         private IPAddressPrototype _addressPrototype;
         private ProcessPrototypeCollection _processCollection;
+        private ProcessToStartCollection _processToStartCollection;
         private ProcessPrototype _selectedPrototype;
+        private string _processToStart;
+        private ProcessToStart _selectedProcessToStart;
+        private string _processImageString;
+        private ImageSource _processImage;
 
         #region Properties
         public ProcessPrototype SelectedPrototype {
@@ -43,6 +48,26 @@ namespace RemoteAppManagerClient.ViewModel
                 NotifyPropertyChanged("ConnectionStatus");
                 NotifyPropertyChanged("IsReady");
                 NotifyPropertyChanged("IsConnected");
+            }
+        }
+
+        public ProcessToStart SelectedProcessToStart
+        {
+            get { return _selectedProcessToStart; }
+            set
+            {
+                _selectedProcessToStart = value;
+                NotifyPropertyChanged("SelectedProcessToStart");
+            }
+        }
+
+        public ImageSource ProcessImage
+        {
+            get { return _processImage; }
+            set
+            {
+                _processImage = value;
+                NotifyPropertyChanged("ProcessImage");
             }
         }
         #endregion
@@ -72,6 +97,19 @@ namespace RemoteAppManagerClient.ViewModel
             }
         }
 
+        public ProcessToStartCollection ProcessToStartCollection
+        {
+            get
+            {
+                if (_processToStartCollection == null)
+                {
+                    _processToStartCollection = new ProcessToStartCollection();
+                }
+
+                return _processToStartCollection;
+            }
+        }
+
         public bool IsReady {
             get {
                 return (Connection.Socket != null && !Connection.Socket.Connected && this.ConnectionStatus == ConnectionStatuses.DISCONNECTED);
@@ -83,18 +121,28 @@ namespace RemoteAppManagerClient.ViewModel
                 return (Connection.Socket != null && Connection.Socket.Connected && this.ConnectionStatus == ConnectionStatuses.CONNECTED);
             }
         }
+
+        public string ProcessToStart {
+            get { return _processToStart; }
+            set { _processToStart = value; }
+        }
+
         #endregion
 
         #region Class
         public ClientViewModel() {
             _connection = new ClientConnectionService();
             _connection.ConnectionStateChanged += new ConnectionStateChangedEventHandler(_connection_ConnectionStateChangedEventHandler);
-            _connection.MessageReceived += new MessageReceivedEventHandler(_connection_MessageReceivedEventHandler); 
+            _connection.MessageReceived += new MessageReceivedEventHandler(_connection_MessageReceivedEventHandler);
+            _processImageString = "";
 
             CreateConnectCommand();
             CreateDisconnectCommand();
             CreateRequestProcessesCommand();
             CreateKillProcessCommand();
+            CreateFindProcessCommand();
+            CreateStartProcessCommand();
+            CreateOpenImageCommand();
         }
         #endregion
 
@@ -173,6 +221,69 @@ namespace RemoteAppManagerClient.ViewModel
         private void KillProcessCommandExecute(Object param) {
             RequestKillProcess(_selectedPrototype.ID);
         }
+
+        private void CreateFindProcessCommand()
+        {
+            FindProcessCommand = new RelayCommand(FindProcessCommandExecute, CanExecuteFindProcessCommand);
+        }
+
+        public ICommand FindProcessCommand
+        {
+            get;
+            internal set;
+        }
+
+        private void FindProcessCommandExecute(Object param)
+        {
+            RequestFindProcess(_processToStart);
+        }
+
+        private bool CanExecuteFindProcessCommand(Object param)
+        {
+            return IsConnected && _processToStart != null;
+        }
+
+        private void CreateStartProcessCommand()
+        {
+            StartProcessCommand = new RelayCommand(StartProcessCommandExecute, CanExecuteStartProcessCommand);
+        }
+
+        public ICommand StartProcessCommand
+        {
+            get;
+            internal set;
+        }
+
+        private void StartProcessCommandExecute(Object param)
+        {
+            RequestStartProcess(_selectedProcessToStart.ID);
+        }
+
+        private bool CanExecuteStartProcessCommand(Object param)
+        {
+            return IsConnected && _processToStart != null;
+        }
+
+        private void CreateOpenImageCommand()
+        {
+            OpenImageCommand = new RelayCommand(OpenImageCommandExecute, CanExecuteOpenImageCommand);
+        }
+
+        public ICommand OpenImageCommand
+        {
+            get;
+            internal set;
+        }
+
+        private void OpenImageCommandExecute(Object param)
+        {
+            RequestStartProcess(_selectedProcessToStart.ID);
+        }
+
+        private bool CanExecuteOpenImageCommand(Object param)
+        {
+            return IsConnected && _processImage != null;
+        }
         #endregion
 
         #region Sub-model events
@@ -208,6 +319,18 @@ namespace RemoteAppManagerClient.ViewModel
                 case MessageTypes.REQUEST_CLOSE:
                     Connection.Disconnect();
                     break;
+                case MessageTypes.RESPONSE_PROCESS_TO_START:
+                    AddProcessToStart(message);
+                    break;
+                case MessageTypes.RESPONSE_PROCESS_TO_START_END:
+                    //Mouse.OverrideCursor = System.Windows.Input.Cursors.Arrow;
+                    break;
+                case MessageTypes.RESPONSE_PROCESS_IMAGE:
+                    AddProcessImage(message);
+                    break;
+                case MessageTypes.RESPONSE_PROCESS_IMAGE_END:
+                    ShowProcessImage();
+                    break;
             }
         }
         #endregion
@@ -223,8 +346,17 @@ namespace RemoteAppManagerClient.ViewModel
             Connection.Send(Connection.Socket, message.Data);
         }
 
-        protected override void RequestStartProcess(string processName) {
-            throw new NotImplementedException();
+        protected override void RequestStartProcess(int processID)
+        {
+            Message message = new Message(MessageTypes.REQUEST_START_PROCESS, processID.ToString());
+            Connection.Send(Connection.Socket, message.Data);
+        }
+
+        protected void RequestFindProcess(string processName) {
+            //Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait;
+            ProcessToStartCollection.Clear();
+            Message message = new Message(MessageTypes.REQUEST_SEARCH_PROCESS, processName);
+            Connection.Send(Connection.Socket, message.Data);
         }
 
         protected override void AddProcess(Message message) {
@@ -305,6 +437,60 @@ namespace RemoteAppManagerClient.ViewModel
                         Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_NEXT_ICON, prototype.ID.ToString()));
                     }
                 }
+            }
+        }
+
+        protected void AddProcessToStart(Message message)
+        {
+            if (message != null)
+            {
+                String[] dataArray = message.Text.Split(';');
+                int processID;
+
+                if (dataArray.Count() >= 2 && Int32.TryParse(dataArray[0], out processID))
+                {
+
+                    ProcessToStart process = ProcessToStartCollection.FirstOrDefault(x => x.ID == processID);
+
+                    if (process == null)
+                    {
+                        process = new ProcessToStart(processID, dataArray[1]);
+
+                        Application.Current.Dispatcher.BeginInvoke(
+                            DispatcherPriority.Background,
+                            new Action(() =>
+                            {
+                                ProcessToStartCollection.Add(process);
+                            }));
+
+                        Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_NEXT_PROCESS_TO_START, process.ID.ToString()));
+                    }
+                }
+            }
+        }
+
+        private void AddProcessImage(Message message)
+        {
+            if (message != null)
+            {
+                int processID;
+
+                if (Int32.TryParse(Utils.GetTextBetween(message.Text, ConnectionService.PROCESS_START_DELIMITER, ConnectionService.PROCESS_END_DELIMITER), out processID))
+                {
+                    _processImageString += message.Text.Substring(0, message.Text.IndexOf(ConnectionService.PROCESS_START_DELIMITER));
+
+                    Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_PROCESS_IMAGE_NEXT, processID.ToString()));
+                }
+            }
+        }
+
+        private void ShowProcessImage()
+        {
+            Bitmap bitmap = Utils.Base64StringToBitmap(_processImageString);
+
+            if (bitmap != null)
+            {
+                ProcessImage = Utils.BitmapToImageSource(bitmap);
             }
         }
 

@@ -11,7 +11,7 @@ namespace RemoteAppManagerClient.ViewModel
     {
         abstract protected void RequestProcesses();
         abstract protected void RequestKillProcess(int processID);
-        abstract protected void RequestStartProcess(string processName);
+        abstract protected void RequestStartProcess(int processID);
         abstract protected void RequestIcons();
         abstract protected void AddProcess(Message message);
         abstract protected void RemoveProcess(Message message);

@@ -10,8 +10,8 @@ namespace RemoteAppManagerClient.Prototype
     {
         private int _segment1 = 192;
         private int _segment2 = 168;
-        private int _segment3 = 1;
-        private int _segment4 = 113;
+        private int _segment3 = 0;
+        private int _segment4 = 108;
 
         public int Segment1 { 
             get { return _segment1;}

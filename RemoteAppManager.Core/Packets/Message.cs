@@ -15,15 +15,23 @@ namespace RemoteAppManager.Packets
         REQUEST_NEXT_ICON = 5,
         REQUEST_CLOSE = 6,
         REQUEST_KILL_PROCESS = 7,
+        REQUEST_SEARCH_PROCESS = 8,
+        REQUEST_NEXT_PROCESS_TO_START = 9,
+        REQUEST_START_PROCESS = 10,
+        REQUEST_PROCESS_IMAGE_NEXT = 11,
 
-        RESPONSE_IMAGE = 8,
-        RESPONSE_ERROR = 9,
-        RESPONSE_PROCESS = 10,
-        RESPONSE_PROCESS_END = 11,
-        RESPONSE_KILL_SUCCESS = 12,
-        RESPONSE_RECEIVED_SUCCESS = 13,
+        RESPONSE_IMAGE = 12,
+        RESPONSE_ERROR = 13,
+        RESPONSE_PROCESS = 14,
+        RESPONSE_PROCESS_END = 15,
+        RESPONSE_KILL_SUCCESS = 16,
+        RESPONSE_RECEIVED_SUCCESS = 17,
+        RESPONSE_PROCESS_TO_START = 18,
+        RESPONSE_PROCESS_TO_START_END = 19,
+        RESPONSE_PROCESS_IMAGE = 20,
+        RESPONSE_PROCESS_IMAGE_END = 21,
 
-        NONE = 14
+        NONE = 22
     }
 
     public class Message : PacketStructure
