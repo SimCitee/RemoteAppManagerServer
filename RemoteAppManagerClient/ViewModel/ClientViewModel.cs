@@ -491,6 +491,7 @@ namespace RemoteAppManagerClient.ViewModel
             if (bitmap != null)
             {
                 ProcessImage = Utils.BitmapToImageSource(bitmap);
+                _processImageString = "";
             }
         }
 
