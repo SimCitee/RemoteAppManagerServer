@@ -32,8 +32,8 @@ namespace RemoteAppManagerServer
         #region Properties
         private static ManualResetEvent allDone = new ManualResetEvent(false);
         private Process[] _processesCacheList = null;
-        List<ProcessIconPrototype> _processPrototypesList = null;
-        private List<ProcessToStart> _processesToStartList = null;
+        List<ProcessPrototype> _processPrototypesList = null;
+        private List<ProcessPrototype> _processesToStartList = null;
         private List<string> _imageStringList = null;
         #endregion
 
@@ -121,7 +121,7 @@ namespace RemoteAppManagerServer
         private void InitSendProcessIcons() {
             ServerUtils.DisplayMessage("Received request for icons");
 
-            _processPrototypesList = new List<ProcessIconPrototype>();
+            _processPrototypesList = new List<ProcessPrototype>();
 
             //build filename list
             if (_processesCacheList != null) {
@@ -129,7 +129,7 @@ namespace RemoteAppManagerServer
                     String fileName = TryGetProcessFilename(process);
 
                     if (!String.IsNullOrEmpty(fileName)) {
-                        ProcessIconPrototype proto = new ProcessIconPrototype(process.Id, fileName);
+                        ProcessPrototype proto = new ProcessPrototype(process.Id, fileName);
                         _processPrototypesList.Add(proto);
                     }
                 }
@@ -145,7 +145,7 @@ namespace RemoteAppManagerServer
         /// </summary>
         private void SendProcessIcon(int previousProcessID) {
             if (_processPrototypesList != null) {
-                ProcessIconPrototype prototype = null;
+                ProcessPrototype prototype = null;
 
                 if (previousProcessID == 0) {
                     prototype = _processPrototypesList.FirstOrDefault();
@@ -230,7 +230,7 @@ namespace RemoteAppManagerServer
             string localMachine32 = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
             string localMachine64 = @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
             RegistryKey key;
-            _processesToStartList = new List<ProcessToStart>();
+            _processesToStartList = new List<ProcessPrototype>();
 
             key = Registry.CurrentUser.OpenSubKey(currentUser);
             SearchSubKey(process, key, _processesToStartList);
@@ -244,7 +244,7 @@ namespace RemoteAppManagerServer
             TrySendProcessToStart(_processesToStartList.FirstOrDefault());
         }
 
-        private static void SearchSubKey(string process, RegistryKey key, List<ProcessToStart> processesToStartList)
+        private static void SearchSubKey(string process, RegistryKey key, List<ProcessPrototype> processesToStartList)
         {
             RegistryKey subkey;
             string name;
@@ -262,7 +262,7 @@ namespace RemoteAppManagerServer
                         {
                             if (processesToStartList.Where(x => x.FileName == filePath).Count() == 0)
                             {
-                                ProcessToStart pts = new ProcessToStart(processesToStartList.Count(), name, filePath);
+                                ProcessPrototype pts = new ProcessPrototype(processesToStartList.Count(), name, filePath);
                                 processesToStartList.Add(pts);
                             }
                         }
@@ -273,14 +273,14 @@ namespace RemoteAppManagerServer
             }
         }
 
-        private void TrySendProcessToStart(ProcessToStart process)
+        private void TrySendProcessToStart(ProcessPrototype process)
         {
             try
             {
-                if (Socket.Connected && process.ID >= 0)
+                if (Socket.Connected && process.ProcessID >= 0)
                 {
 
-                    String data = process.ID + ";" + process.Name;
+                    String data = process.ProcessID + ";" + process.Name;
                     RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_TO_START, data);
 
                     Send(Socket, message.Data, true);
@@ -296,7 +296,7 @@ namespace RemoteAppManagerServer
         {
             if (_processesToStartList != null)
             {
-                ProcessToStart process = _processesToStartList.SkipWhile(x => x.ID != previousProcessID).Skip(1).FirstOrDefault();
+                ProcessPrototype process = _processesToStartList.SkipWhile(x => x.ProcessID != previousProcessID).Skip(1).FirstOrDefault();
 
                 if (process != null)
                 {
@@ -314,7 +314,7 @@ namespace RemoteAppManagerServer
             if (_processesToStartList != null)
             {
                 Process myProcess;
-                myProcess = Process.Start(_processesToStartList.Where(x => x.ID == processID).Select(x => x.FileName).First());
+                myProcess = Process.Start(_processesToStartList.Where(x => x.ProcessID == processID).Select(x => x.FileName).First());
                 
                 System.Threading.Thread.Sleep (5000);
 

@@ -73,8 +73,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Prototype\ProcessToStart.cs" />
-    <Compile Include="Prototype\ProcessToStartCollection.cs" />
     <Compile Include="Resources\Converters.cs" />
     <Compile Include="ViewModel\ClientViewModel.cs" />
     <Compile Include="ViewModel\ClientViewModelBase.cs" />

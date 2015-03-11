@@ -25,10 +25,10 @@ namespace RemoteAppManagerClient.ViewModel
         private ConnectionStatuses _connectionStatus;
         private IPAddressPrototype _addressPrototype;
         private ProcessPrototypeCollection _processCollection;
-        private ProcessToStartCollection _processToStartCollection;
+        private ProcessPrototypeCollection _processToStartCollection;
         private ProcessPrototype _selectedPrototype;
         private string _processToStart;
-        private ProcessToStart _selectedProcessToStart;
+        private ProcessPrototype _selectedProcessToStart;
         private string _processImageString;
         private ImageSource _processImage;
 
@@ -51,7 +51,7 @@ namespace RemoteAppManagerClient.ViewModel
             }
         }
 
-        public ProcessToStart SelectedProcessToStart
+        public ProcessPrototype SelectedProcessToStart
         {
             get { return _selectedProcessToStart; }
             set
@@ -97,13 +97,13 @@ namespace RemoteAppManagerClient.ViewModel
             }
         }
 
-        public ProcessToStartCollection ProcessToStartCollection
+        public ProcessPrototypeCollection ProcessToStartCollection
         {
             get
             {
                 if (_processToStartCollection == null)
                 {
-                    _processToStartCollection = new ProcessToStartCollection();
+                    _processToStartCollection = new ProcessPrototypeCollection();
                 }
 
                 return _processToStartCollection;
@@ -450,11 +450,11 @@ namespace RemoteAppManagerClient.ViewModel
                 if (dataArray.Count() >= 2 && Int32.TryParse(dataArray[0], out processID))
                 {
 
-                    ProcessToStart process = ProcessToStartCollection.FirstOrDefault(x => x.ID == processID);
+                    ProcessPrototype process = ProcessToStartCollection.FirstOrDefault(x => x.ID == processID);
 
                     if (process == null)
                     {
-                        process = new ProcessToStart(processID, dataArray[1]);
+                        process = new ProcessPrototype(processID, dataArray[1]);
 
                         Application.Current.Dispatcher.BeginInvoke(
                             DispatcherPriority.Background,
