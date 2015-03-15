@@ -339,8 +339,9 @@ namespace RemoteAppManagerServer
             {
                 Process myProcess;
                 myProcess = Process.Start(ProcessesToStartList.Where(x => x.ProcessID == processID).Select(x => x.FileName).First());
-                
-                System.Threading.Thread.Sleep (5000);
+
+                myProcess.WaitForInputIdle();
+                System.Threading.Thread.Sleep (2000);
 
                 PrintScreen();
             }
