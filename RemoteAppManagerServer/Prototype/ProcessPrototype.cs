@@ -12,16 +12,13 @@ namespace RemoteAppManagerServer.Prototype
         public string Name { get; set; }
         public int ProcessID { get; set; }
 
-        public ProcessPrototype(int processID, String filename) {
-            FileName = filename;
-            ProcessID = processID;
-        }
+        public ProcessPrototype(int processID, String filename):this(processID, filename, "") {}
 
-        public ProcessPrototype(int processID, string name, String filename)
+        public ProcessPrototype(int processID, String filename, String name)
         {
+            ProcessID = processID;
             FileName = filename;
             Name = name;
-            ProcessID = processID;
         }
     }
 }

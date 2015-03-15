@@ -27,9 +27,9 @@ namespace RemoteAppManagerClient.ViewModel
         private ProcessPrototypeCollection _processCollection;
         private ProcessPrototypeCollection _processToStartCollection;
         private ProcessPrototype _selectedPrototype;
-        private string _processToStart;
         private ProcessPrototype _selectedProcessToStart;
-        private string _processImageString;
+        private String _processToStart;
+        private String _processImageString;
         private ImageSource _processImage;
 
         #region Properties
@@ -97,12 +97,9 @@ namespace RemoteAppManagerClient.ViewModel
             }
         }
 
-        public ProcessPrototypeCollection ProcessToStartCollection
-        {
-            get
-            {
-                if (_processToStartCollection == null)
-                {
+        public ProcessPrototypeCollection ProcessToStartCollection {
+            get {
+                if (_processToStartCollection == null) {
                     _processToStartCollection = new ProcessPrototypeCollection();
                 }
 
@@ -323,13 +320,13 @@ namespace RemoteAppManagerClient.ViewModel
                     AddProcessToStart(message);
                     break;
                 case MessageTypes.RESPONSE_PROCESS_TO_START_END:
-                    //Mouse.OverrideCursor = System.Windows.Input.Cursors.Arrow;
+                    RequestProcessToStartIcons();
                     break;
                 case MessageTypes.RESPONSE_PROCESS_IMAGE:
                     AddProcessImage(message);
                     break;
                 case MessageTypes.RESPONSE_PROCESS_IMAGE_END:
-                    ShowProcessImage();
+                    SetStartedProcessImage();
                     break;
             }
         }
@@ -353,7 +350,6 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         protected void RequestFindProcess(string processName) {
-            //Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait;
             ProcessToStartCollection.Clear();
             Message message = new Message(MessageTypes.REQUEST_SEARCH_PROCESS, processName);
             Connection.Send(Connection.Socket, message.Data);
@@ -411,8 +407,13 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         protected override void RequestIcons() {
-            Message message = new Message(MessageTypes.REQUEST_ICONS);
-            Connection.Send(Connection.Socket, message.Data);
+            Message message = new Message(MessageTypes.REQUEST_ICONS, "kill");
+            Connection.Send(Connection.Socket, message);
+        }
+
+        protected void RequestProcessToStartIcons() {
+            Message message = new Message(MessageTypes.REQUEST_ICONS, "start");
+            Connection.Send(Connection.Socket, message);
         }
 
         protected override void AddProcessIcon(Message message) {
@@ -425,7 +426,13 @@ namespace RemoteAppManagerClient.ViewModel
                     Bitmap bitmap = Utils.Base64StringToBitmap(imageText);
 
                     if (bitmap != null) {
-                        ProcessPrototype prototype = _processCollection.FirstOrDefault(x => x.ID == processID);
+                        ProcessPrototype prototype = null;
+                        
+                        prototype = ProcessCollection.FirstOrDefault(x => x.ID == processID);
+
+                        if (prototype == null) {
+                            prototype = ProcessToStartCollection.FirstOrDefault(x => x.ID == processID);
+                        }
 
                         if (prototype != null) {
                             ImageSource imageSource = Utils.BitmapToImageSource(bitmap);
@@ -447,13 +454,10 @@ namespace RemoteAppManagerClient.ViewModel
                 String[] dataArray = message.Text.Split(';');
                 int processID;
 
-                if (dataArray.Count() >= 2 && Int32.TryParse(dataArray[0], out processID))
-                {
-
+                if (dataArray.Count() >= 2 && Int32.TryParse(dataArray[0], out processID)) {
                     ProcessPrototype process = ProcessToStartCollection.FirstOrDefault(x => x.ID == processID);
 
-                    if (process == null)
-                    {
+                    if (process == null) {
                         process = new ProcessPrototype(processID, dataArray[1]);
 
                         Application.Current.Dispatcher.BeginInvoke(
@@ -484,7 +488,7 @@ namespace RemoteAppManagerClient.ViewModel
             }
         }
 
-        private void ShowProcessImage()
+        private void SetStartedProcessImage()
         {
             Bitmap bitmap = Utils.Base64StringToBitmap(_processImageString);
 
