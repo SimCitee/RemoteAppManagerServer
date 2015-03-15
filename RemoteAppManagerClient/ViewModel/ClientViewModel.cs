@@ -31,6 +31,7 @@ namespace RemoteAppManagerClient.ViewModel
         private String _processToStart;
         private String _processImageString;
         private ImageSource _processImage;
+        private Boolean _isImageTransfering;
 
         #region Properties
         public ProcessPrototype SelectedPrototype {
@@ -58,6 +59,16 @@ namespace RemoteAppManagerClient.ViewModel
             {
                 _selectedProcessToStart = value;
                 NotifyPropertyChanged("SelectedProcessToStart");
+            }
+        }
+
+        public Boolean IsImageTransfering
+        {
+            get { return _isImageTransfering; }
+            set
+            {
+                _isImageTransfering = value;
+                NotifyPropertyChanged("IsImageTransfering");
             }
         }
 
@@ -132,6 +143,7 @@ namespace RemoteAppManagerClient.ViewModel
             _connection.ConnectionStateChanged += new ConnectionStateChangedEventHandler(_connection_ConnectionStateChangedEventHandler);
             _connection.MessageReceived += new MessageReceivedEventHandler(_connection_MessageReceivedEventHandler);
             _processImageString = "";
+            _isImageTransfering = false;
 
             CreateConnectCommand();
             CreateDisconnectCommand();
@@ -258,7 +270,7 @@ namespace RemoteAppManagerClient.ViewModel
 
         private bool CanExecuteStartProcessCommand(Object param)
         {
-            return IsConnected && _processToStart != null;
+            return IsConnected && _selectedProcessToStart != null && !IsImageTransfering;
         }
 
         private void CreateOpenImageCommand()
@@ -345,6 +357,7 @@ namespace RemoteAppManagerClient.ViewModel
 
         protected override void RequestStartProcess(int processID)
         {
+            IsImageTransfering = true;
             Message message = new Message(MessageTypes.REQUEST_START_PROCESS, processID.ToString());
             Connection.Send(Connection.Socket, message.Data);
         }
@@ -497,6 +510,9 @@ namespace RemoteAppManagerClient.ViewModel
                 ProcessImage = Utils.BitmapToImageSource(bitmap);
                 _processImageString = "";
             }
+
+            IsImageTransfering = false;
+            CommandManager.InvalidateRequerySuggested();
         }
 
         public void RefreshProperties() {

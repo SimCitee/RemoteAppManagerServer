@@ -198,6 +198,7 @@
             <Button Grid.Row="1" 
 				Style="{StaticResource GlowButton}" 
 				HorizontalAlignment="Right"
+                    IsEnabled="{Binding IsImageTransfering}"
 				Command="{Binding StartProcessCommand}"
 				Content="Start process"
 				Template="{DynamicResource ButtonControlTemplate}"/>
