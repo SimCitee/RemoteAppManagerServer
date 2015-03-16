@@ -80,7 +80,14 @@ namespace RemoteAppManager.Core
             memoryStream.Position = 0;
 
             BitmapImage bitmapImage = new BitmapImage();
+
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
             bitmapImage.StreamSource = memoryStream;
+            bitmapImage.EndInit();
+
+            bitmapImage.Freeze();
 
             memoryStream.Close();
             memoryStream = null;

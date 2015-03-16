@@ -16,6 +16,7 @@ using RemoteAppManager;
 using RemoteAppManager.Core;
 using RemoteAppManager.Packets;
 using RemoteAppManagerClient.Prototype;
+using System.Threading;
 
 namespace RemoteAppManagerClient.ViewModel
 {
@@ -71,16 +72,6 @@ namespace RemoteAppManagerClient.ViewModel
                 NotifyPropertyChanged("IsImageTransfering");
             }
         }
-
-        public ImageSource ProcessImage
-        {
-            get { return _processImage; }
-            set
-            {
-                _processImage = value;
-                NotifyPropertyChanged("ProcessImage");
-            }
-        }
         #endregion
 
         #region View properties
@@ -132,7 +123,20 @@ namespace RemoteAppManagerClient.ViewModel
 
         public string ProcessToStart {
             get { return _processToStart; }
-            set { _processToStart = value; }
+            set {
+                _processToStart = value;
+                NotifyPropertyChanged("ProcessToStart");
+            }
+        }
+
+        public ImageSource ProcessImage
+        {
+            get { return _processImage; }
+            set
+            {
+                _processImage = value;
+                NotifyPropertyChanged("ProcessImage");
+            }
         }
 
         #endregion
@@ -286,7 +290,10 @@ namespace RemoteAppManagerClient.ViewModel
 
         private void OpenImageCommandExecute(Object param)
         {
-            RequestStartProcess(_selectedProcessToStart.ID);
+            var thread = new Thread(new ThreadStart(DisplayFormThread));
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
         }
 
         private bool CanExecuteOpenImageCommand(Object param)
@@ -304,6 +311,8 @@ namespace RemoteAppManagerClient.ViewModel
                             new Action(() =>
                             {
                                 ProcessCollection.Clear();
+                                ProcessToStartCollection.Clear();
+                                ProcessToStart = "";
                             }));
             }
 
@@ -504,15 +513,55 @@ namespace RemoteAppManagerClient.ViewModel
         private void SetStartedProcessImage()
         {
             Bitmap bitmap = Utils.Base64StringToBitmap(_processImageString);
+            ProcessImage = Utils.BitmapToImageSource(bitmap);
+            //ProcessImage = Utils.Base64StringToBitmapImage(_processImageString);
 
-            if (bitmap != null)
+            if (ProcessImage != null)
             {
-                ProcessImage = Utils.BitmapToImageSource(bitmap);
+                var thread = new Thread(new ThreadStart(DisplayFormThread));
+
                 _processImageString = "";
+
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+                thread.Join();
             }
 
             IsImageTransfering = false;
-            CommandManager.InvalidateRequerySuggested();
+        }
+
+        private void DisplayFormThread()
+        {
+            try
+            {
+                ImageWindow imageWindow = new ImageWindow();
+
+                /*Action action = () => imageWindow.PART_IMAGE.Source = _processImage;
+                var dispatcher = imageWindow.Dispatcher;
+                if (dispatcher.CheckAccess())
+                    action();
+                else
+                    dispatcher.Invoke(action);*/
+
+                imageWindow.Dispatcher.Invoke(new Action(() => imageWindow.PART_IMAGE.Source = ProcessImage));
+
+                /*Application.Current.Dispatcher.BeginInvoke(
+                    DispatcherPriority.Background,
+                    new Action(() =>
+                    {
+                        imageWindow.PART_IMAGE.Source = _processImage;
+                    }));*/
+
+                imageWindow.PART_IMAGE.InvalidateVisual();
+                imageWindow.Show();
+                imageWindow.PART_IMAGE.InvalidateVisual();
+                imageWindow.UpdateLayout();
+
+                imageWindow.Closed += (s, e) => System.Windows.Threading.Dispatcher.ExitAllFrames();
+
+                System.Windows.Threading.Dispatcher.Run();
+            }
+            catch (Exception ex) {}
         }
 
         public void RefreshProperties() {

@@ -197,6 +197,18 @@
             
             <Button Grid.Row="1" 
 				Style="{StaticResource GlowButton}" 
+				HorizontalAlignment="Left"
+				Command="{Binding OpenImageCommand}"
+				Content="View image"
+				Template="{DynamicResource ButtonControlTemplate}"/>
+
+            <Image Grid.Row="1" x:Name="PART_IMAGE"
+                HorizontalAlignment="Center"
+                Source="{Binding ProcessImage}"
+                VerticalAlignment="Top" />
+
+            <Button Grid.Row="1"
+				Style="{StaticResource GlowButton}" 
 				HorizontalAlignment="Right"
 				Command="{Binding StartProcessCommand}"
 				Content="Start process"
