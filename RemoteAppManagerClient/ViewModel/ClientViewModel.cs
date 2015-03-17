@@ -33,6 +33,7 @@ namespace RemoteAppManagerClient.ViewModel
         private String _processImageString;
         private ImageSource _processImage;
         private Boolean _isImageTransfering;
+        private System.Timers.Timer _transferingTimer;
 
         #region Properties
         public ProcessPrototype SelectedPrototype {
@@ -69,6 +70,10 @@ namespace RemoteAppManagerClient.ViewModel
             set
             {
                 _isImageTransfering = value;
+
+                if (value == false)
+                    _transferingTimer.Stop();
+
                 NotifyPropertyChanged("IsImageTransfering");
             }
         }
@@ -148,6 +153,10 @@ namespace RemoteAppManagerClient.ViewModel
             _connection.MessageReceived += new MessageReceivedEventHandler(_connection_MessageReceivedEventHandler);
             _processImageString = "";
             _isImageTransfering = false;
+            _transferingTimer = new System.Timers.Timer();
+            _transferingTimer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimedEvent);
+            _transferingTimer.Interval = 5000;
+            _transferingTimer.Enabled = true;
 
             CreateConnectCommand();
             CreateDisconnectCommand();
@@ -315,6 +324,8 @@ namespace RemoteAppManagerClient.ViewModel
                                 ProcessCollection.Clear();
                                 ProcessToStartCollection.Clear();
                                 ProcessToStart = "";
+                                ProcessImage = null;
+                                _isImageTransfering = false;
                             }));
             }
 
@@ -369,6 +380,8 @@ namespace RemoteAppManagerClient.ViewModel
         protected override void RequestStartProcess(int processID)
         {
             IsImageTransfering = true;
+            _transferingTimer.Start();
+
             Message message = new Message(MessageTypes.REQUEST_START_PROCESS, processID.ToString());
             Connection.Send(Connection.Socket, message.Data);
         }
@@ -516,6 +529,7 @@ namespace RemoteAppManagerClient.ViewModel
         {
             Bitmap image = Utils.Base64StringToBitmap(_processImageString);
             ProcessImage = Utils.BitmapToImageSource(image);
+            image.Dispose();
 
             if (ProcessImage != null) {
                 var thread = new Thread(new ThreadStart(DisplayFormThread));
@@ -551,6 +565,11 @@ namespace RemoteAppManagerClient.ViewModel
             NotifyPropertyChanged("IsReady");
             NotifyPropertyChanged("IsConnected");
             NotifyPropertyChanged("SelectedPrototype");
+        }
+
+        private void OnTimedEvent(object source, System.Timers.ElapsedEventArgs e)
+        {
+            if (IsImageTransfering) IsImageTransfering = false;
         }
         #endregion
     }
