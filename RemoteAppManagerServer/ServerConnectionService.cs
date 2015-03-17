@@ -355,7 +355,7 @@ namespace RemoteAppManagerServer
 
             int sectionCount = (int)Math.Ceiling(((double)image.Length / 3000));
             _imageStringList = Enumerable.Range(0, sectionCount).Select(i => image.Substring(i * 3000, (i * 3000 + 3000 <= image.Length) ? 3000 : image.Length - i * 3000)).ToList();
-
+            
             SendProcessImage(_imageStringList.First());
         }
 

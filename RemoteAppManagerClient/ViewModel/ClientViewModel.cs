@@ -306,6 +306,8 @@ namespace RemoteAppManagerClient.ViewModel
         private void _connection_ConnectionStateChangedEventHandler(ConnectionStatuses status) {
             if (status == ConnectionStatuses.DISCONNECTED) {
                 SelectedPrototype = null;
+                SelectedProcessToStart = null;
+
                 Application.Current.Dispatcher.BeginInvoke(
                             DispatcherPriority.Background,
                             new Action(() =>
