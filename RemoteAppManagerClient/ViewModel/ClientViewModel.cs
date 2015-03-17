@@ -499,25 +499,23 @@ namespace RemoteAppManagerClient.ViewModel
         {
             if (message != null)
             {
-                int processID;
+                int imagePiece;
 
-                if (Int32.TryParse(Utils.GetTextBetween(message.Text, ConnectionService.PROCESS_START_DELIMITER, ConnectionService.PROCESS_END_DELIMITER), out processID))
+                if (Int32.TryParse(Utils.GetTextBetween(message.Text, ConnectionService.PROCESS_START_DELIMITER, ConnectionService.PROCESS_END_DELIMITER), out imagePiece))
                 {
                     _processImageString += message.Text.Substring(0, message.Text.IndexOf(ConnectionService.PROCESS_START_DELIMITER));
 
-                    Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_PROCESS_IMAGE_NEXT, processID.ToString()));
+                    Connection.Send(Connection.Socket, new Message(MessageTypes.REQUEST_PROCESS_IMAGE_NEXT, imagePiece.ToString()));
                 }
             }
         }
 
         private void SetStartedProcessImage()
         {
-            Bitmap bitmap = Utils.Base64StringToBitmap(_processImageString);
-            ProcessImage = Utils.BitmapToImageSource(bitmap);
-            //ProcessImage = Utils.Base64StringToBitmapImage(_processImageString);
+            Bitmap image = Utils.Base64StringToBitmap(_processImageString);
+            ProcessImage = Utils.BitmapToImageSource(image);
 
-            if (ProcessImage != null)
-            {
+            if (ProcessImage != null) {
                 var thread = new Thread(new ThreadStart(DisplayFormThread));
 
                 _processImageString = "";
@@ -536,32 +534,15 @@ namespace RemoteAppManagerClient.ViewModel
             {
                 ImageWindow imageWindow = new ImageWindow();
 
-                /*Action action = () => imageWindow.PART_IMAGE.Source = _processImage;
-                var dispatcher = imageWindow.Dispatcher;
-                if (dispatcher.CheckAccess())
-                    action();
-                else
-                    dispatcher.Invoke(action);*/
-
                 imageWindow.Dispatcher.Invoke(new Action(() => imageWindow.PART_IMAGE.Source = ProcessImage));
-
-                /*Application.Current.Dispatcher.BeginInvoke(
-                    DispatcherPriority.Background,
-                    new Action(() =>
-                    {
-                        imageWindow.PART_IMAGE.Source = _processImage;
-                    }));*/
-
-                imageWindow.PART_IMAGE.InvalidateVisual();
                 imageWindow.Show();
-                imageWindow.PART_IMAGE.InvalidateVisual();
-                imageWindow.UpdateLayout();
-
                 imageWindow.Closed += (s, e) => System.Windows.Threading.Dispatcher.ExitAllFrames();
 
                 System.Windows.Threading.Dispatcher.Run();
             }
-            catch (Exception ex) {}
+            catch (Exception ex) {
+                Utils.Log(LogLevels.ERROR, ex.ToString());
+            }
         }
 
         public void RefreshProperties() {

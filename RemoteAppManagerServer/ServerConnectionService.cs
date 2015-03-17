@@ -16,7 +16,6 @@ using RemoteAppManagerServer.Prototype;
 using RemoteAppManager.Packets;
 using Microsoft.Win32;
 using Shell32;
-using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 
@@ -350,10 +349,12 @@ namespace RemoteAppManagerServer
         private void PrintScreen() {
             Bitmap printscreen = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
             Graphics graphics = Graphics.FromImage(printscreen as Image);
+            graphics.CopyFromScreen(0, 0, 0, 0, printscreen.Size);
+
             String image = Utils.BitmapToBase64String(printscreen);
 
-            graphics.CopyFromScreen(0, 0, 0, 0, printscreen.Size);
-            _imageStringList = Enumerable.Range(0, image.Length / 3000).Select(i => image.Substring(i * 3000, 3000)).ToList();
+            int sectionCount = (int)Math.Ceiling(((double)image.Length / 3000));
+            _imageStringList = Enumerable.Range(0, sectionCount).Select(i => image.Substring(i * 3000, (i * 3000 + 3000 <= image.Length) ? 3000 : image.Length - i * 3000)).ToList();
 
             SendProcessImage(_imageStringList.First());
         }
@@ -365,9 +366,7 @@ namespace RemoteAppManagerServer
         }
 
         private void SendNextProcessImage(int previousImagePiece) {
-            String imageString = _imageStringList.ElementAtOrDefault(previousImagePiece);
-
-            previousImagePiece++;
+            String imageString = _imageStringList.ElementAtOrDefault(++previousImagePiece);
 
             if (imageString != null) {
                 RemoteAppManager.Packets.Message message = new RemoteAppManager.Packets.Message(MessageTypes.RESPONSE_PROCESS_IMAGE, imageString + ConnectionService.PROCESS_START_DELIMITER + previousImagePiece + ConnectionService.PROCESS_END_DELIMITER);

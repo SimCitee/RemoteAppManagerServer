@@ -52,15 +52,5 @@ namespace RemoteAppManagerClient
         private void TextBox_GotFocus_3(object sender, RoutedEventArgs e) {
             SelectAll(sender);
         }
-
-        private void Image_SourceUpdated(object sender, DataTransferEventArgs e)
-        {
-
-        }
-
-        private void Image_LayoutUpdated(object sender, EventArgs e)
-        {
-
-        }
     }
 }
