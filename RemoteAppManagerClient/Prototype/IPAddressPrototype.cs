@@ -8,10 +8,10 @@ namespace RemoteAppManagerClient.Prototype
 {
     class IPAddressPrototype
     {
-        private int _segment1 = 192;
-        private int _segment2 = 168;
-        private int _segment3 = 1;
-        private int _segment4 = 116;
+        private int _segment1;
+        private int _segment2;
+        private int _segment3;
+        private int _segment4;
 
         public int Segment1 { 
             get { return _segment1;}

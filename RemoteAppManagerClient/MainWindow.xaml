@@ -6,7 +6,7 @@
         Height="auto" 
         Width="auto" 
         Background="#2C2D2E"
-        ResizeMode="CanResize"
+        ResizeMode="NoResize"
         SizeToContent="WidthAndHeight">
     <Window.Resources>
         <DataTemplate x:Key="DefaultTemplate">
