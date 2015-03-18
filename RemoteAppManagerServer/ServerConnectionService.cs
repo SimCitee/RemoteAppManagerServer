@@ -140,16 +140,8 @@ namespace RemoteAppManagerServer
 
         private void InitSendProcessIcons(RemoteAppManager.Packets.Message message) {
             ServerUtils.DisplayMessage("Received request for icons");
-
-            switch (message.Text) {
-                case "kill":
-                    RefreshProcessPrototypesList();
-                    SendProcessIcon(0, ProcessPrototypesList);
-                    break;
-                case "start":
-                    SendProcessIcon(0, ProcessesToStartList);
-                    break;
-            } 
+            RefreshProcessPrototypesList();
+            SendProcessIcon(0);
         }
 
         private void RefreshProcessPrototypesList() {
@@ -171,15 +163,15 @@ namespace RemoteAppManagerServer
         /// <summary>
         /// Send process icon to the client
         /// </summary>
-        private void SendProcessIcon(int previousProcessID, List<ProcessPrototype> processesList) {
-            if (processesList != null && processesList.Count > 0) {
+        private void SendProcessIcon(int previousProcessID) {
+            if (ProcessPrototypesList != null && ProcessPrototypesList.Count > 0) {
                 ProcessPrototype prototype = null;
 
                 if (previousProcessID == 0) {
-                    prototype = processesList.FirstOrDefault();
+                    prototype = ProcessPrototypesList.FirstOrDefault();
                 }
                 else {
-                    prototype = processesList.SkipWhile(x => x.ProcessID != previousProcessID).Skip(1).FirstOrDefault();
+                    prototype = ProcessPrototypesList.SkipWhile(x => x.ProcessID != previousProcessID).Skip(1).FirstOrDefault();
                 }
 
                 if (prototype != null) {
@@ -403,7 +395,7 @@ namespace RemoteAppManagerServer
                     InitSendProcessIcons(message);
                     break;
                 case MessageTypes.REQUEST_NEXT_ICON:
-                    SendProcessIcon(message.GetIntegerValue, ProcessPrototypesList);
+                    SendProcessIcon(message.GetIntegerValue);
                     break;
                 case MessageTypes.REQUEST_KILL_PROCESS:
                     RequestKillProcess(message.GetIntegerValue);

@@ -353,9 +353,6 @@ namespace RemoteAppManagerClient.ViewModel
                 case MessageTypes.RESPONSE_PROCESS_TO_START:
                     AddProcessToStart(message);
                     break;
-                case MessageTypes.RESPONSE_PROCESS_TO_START_END:
-                    RequestProcessToStartIcons();
-                    break;
                 case MessageTypes.RESPONSE_PROCESS_IMAGE:
                     AddProcessImage(message);
                     break;
@@ -444,12 +441,7 @@ namespace RemoteAppManagerClient.ViewModel
         }
 
         protected override void RequestIcons() {
-            Message message = new Message(MessageTypes.REQUEST_ICONS, "kill");
-            Connection.Send(Connection.Socket, message);
-        }
-
-        protected void RequestProcessToStartIcons() {
-            Message message = new Message(MessageTypes.REQUEST_ICONS, "start");
+            Message message = new Message(MessageTypes.REQUEST_ICONS);
             Connection.Send(Connection.Socket, message);
         }
 
